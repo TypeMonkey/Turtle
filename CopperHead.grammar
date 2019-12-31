@@ -1,0 +1,79 @@
+%header%
+GRAMMARTYPE = "LL"
+
+%tokens%
+WHITESPACE = <<[ \t\n\r]+>> %ignore%  //ignore tag to discard such tokens
+
+STRING = <<\'.*?\'>>
+INTEGER = <<([-|+]?[0-9]+)>>  //includes shorts and bytes
+
+//value literals
+TRUE = "true"
+FALSE = "false"
+
+//control flow keywords
+WHILE = "while"
+IF = "if"
+
+//built in funcs with 1 argument
+//ADD1 = "add1"
+//SUB1 = "sub1"
+//ISNUM = "isNum"
+//ISBOOL = "isBool"
+
+//built-in type names
+INT = "int"
+STR = "string"
+BOOL = "bool"
+
+
+//other keywords
+LET = "let"
+DEF = "def"
+SET = "set"
+VOID = "void"
+
+NAME = <<[a-zA-Z][a-zA-Z0-9_]*>>  //reduce spaces between "<<" and ">>"
+
+//operators
+PLUS = "+"
+MINUS = "-"
+MULT = "*"
+LESS = "<"
+GREAT = ">"
+EQUAL = "="
+NOT_EQ = "!="
+GR_EQ = ">=" 
+LS_EQ = "<="
+
+COLON = ":"
+EXPONENT = "^"
+
+OP_PAREN = "("
+CL_PAREN = ")"
+
+
+%productions%
+
+program = (expr+);
+
+expr = (atom
+       | (OP_PAREN funcDef CL_PAREN)
+       | (OP_PAREN letDec CL_PAREN)
+	   | (OP_PAREN ifExpr CL_PAREN)
+	   | (OP_PAREN binOp CL_PAREN)
+	   | (OP_PAREN setVar CL_PAREN)
+	   | (OP_PAREN funcCall CL_PAREN)
+	   | (OP_PAREN whileLoop CL_PAREN));
+	   
+funcDef = DEF NAME ((OP_PAREN (NAME COLON type) CL_PAREN)+ | VOID) COLON (type | VOID) (expr)+ ;
+letDec = LET OP_PAREN (OP_PAREN (NAME COLON type)  expr CL_PAREN)+ CL_PAREN (expr)+ ;
+ifExpr = IF expr expr expr;
+binOp = (PLUS | MINUS | MULT | LESS | GREAT | EQUAL) expr expr;
+setVar = SET NAME expr;
+funcCall = NAME (expr)*;
+whileLoop = WHILE expr (expr)*;
+	   
+type = (INT | BOOL | STR);
+
+atom = ( ( [MINUS] INTEGER) | FALSE | TRUE | STRING | NAME);

@@ -1,0 +1,88 @@
+%header%
+GRAMMARTYPE = "LL"
+
+%tokens%
+WHITESPACE = <<[ \t\n\r]+>> %ignore%  //ignore tag to discard such tokens
+
+STRING = <<\'.*?\'>>
+INTEGER = <<([-|+]?[0-9]+)>>  //includes shorts and bytes
+
+//value literals
+TRUE = "true"
+FALSE = "false"
+NULL = "null"
+
+//control flow keywords
+WHILE = "while"
+IF = "if"
+
+//built-in type names
+INT = "int"
+STR = "string"
+BOOL = "bool"
+VOID = "void"
+
+
+//other keywords
+LET = "let"
+DEF = "def"
+SET = "set"
+DATA = "data"
+MUTATE = "mut"
+GET = "get"
+
+NAME = <<[a-zA-Z][a-zA-Z0-9_]*>>  //reduce spaces between "<<" and ">>"
+
+//operators
+NOT_EQ = "!="
+GR_EQ = ">=" 
+LS_EQ = "<="
+PLUS = "+"
+MINUS = "-"
+MULT = "*"
+LESS = "<"
+GREAT = ">"
+EQUAL = "="
+
+
+COLON = ":"
+EXPONENT = "^"
+
+OP_PAREN = "("
+CL_PAREN = ")"
+
+
+%productions%
+
+
+program = (expr+);
+
+expr = (atom
+       | (OP_PAREN funcDef CL_PAREN)
+       | (OP_PAREN letDec CL_PAREN)
+	   | (OP_PAREN ifExpr CL_PAREN)
+	   | (OP_PAREN binOp CL_PAREN)
+	   | (OP_PAREN setVar CL_PAREN)
+	   | (OP_PAREN funcCall CL_PAREN)
+	   | (OP_PAREN whileLoop CL_PAREN))
+	   | (OP_PAREN dataDec CL_PAREN)
+	   | (OP_PAREN mute CL_PAREN)
+	   | (OP_PAREN retrieve CL_PAREN);
+	   
+dataDec = DATA NAME OP_PAREN (NAME COLON type)+ CL_PAREN;
+mute = MUTATE expr NAME expr;  //first expr is target, second one is the new value, name argument is the member to mutate
+retrieve = GET expr NAME; //expr is the target, and name is the member to retrieve
+	   
+funcDef = DEF NAME (OP_PAREN (NAME COLON type) CL_PAREN)* COLON (type | VOID) (expr)* ;
+letDec = LET OP_PAREN (OP_PAREN (NAME COLON type)  expr CL_PAREN)+ CL_PAREN (expr)* ;
+ifExpr = IF expr expr expr;
+binOp = (PLUS | MINUS | MULT | EXPONENT | LESS | GREAT | EQUAL | NOT_EQ | GR_EQ | LS_EQ) expr expr;
+setVar = SET NAME expr;
+funcCall = NAME (expr)*;
+whileLoop = WHILE expr (expr)*;
+
+nullExpr = OP_PAREN NULL type CL_PAREN;
+	   
+type = (INT | BOOL | STR | NAME);
+
+atom = ( ( [MINUS] INTEGER) | FALSE | TRUE | STRING | NAME | nullExpr);
