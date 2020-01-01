@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,10 +23,6 @@ import jg.cs.compile.parser.TurtleParser;
 import jg.cs.compile.parser.TurtleTokenizer;
 import jg.cs.inter.IRCompiler;
 import jg.cs.inter.Result;
-import jg.cs.inter.instruction.Instr;
-import jg.cs.runtime.Executor;
-import jg.cs.runtime.errors.ExecException;
-import jg.cs.runtime.values.Value;
 import net.percederberg.grammatica.parser.ParseException;
 import net.percederberg.grammatica.parser.ParserCreationException;
 import net.percederberg.grammatica.parser.ParserLogException;
@@ -121,20 +116,25 @@ public class Main {
     help.setLongOpt("help");
     help.setArgs(0);
     
-    Option stackOnDisk = new Option("s", "Will load the stack on to disk");
-    stackOnDisk.setLongOpt("sload");
-    stackOnDisk.setArgs(0);
+    Option ostack = new Option("o", "Will load the operand stack on to disk");
+    ostack.setLongOpt("oload");
+    ostack.setArgs(0);
+    
+    Option fstack = new Option("s", "Will load the function stack on to disk");
+    fstack.setLongOpt("sload");
+    fstack.setArgs(0);
     
     Option heapOnDisk = new Option("h", "Will load heap on to disk");
-    stackOnDisk.setLongOpt("hload");
-    stackOnDisk.setArgs(0);
+    heapOnDisk.setLongOpt("hload");
+    heapOnDisk.setArgs(0);
     
-    Option heapSize = new Option("max", "Sets the max size of the heap, in bytes");
-    stackOnDisk.setLongOpt("hload");
-    stackOnDisk.setArgs(0);
+    Option heapSize = new Option("m", "Sets the max size of the heap, in bytes");
+    heapSize.setLongOpt("max");
+    heapSize.setArgs(0);
     
     options.addOption(help);
-    options.addOption(stackOnDisk);
+    options.addOption(fstack);
+    options.addOption(ostack);
     options.addOption(heapOnDisk);
     options.addOption(heapSize);
     

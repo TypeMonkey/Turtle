@@ -223,7 +223,9 @@ public class IRCompiler {
         i++;
       }
       
-      instrs.add(new DataLabelInstr(dec.getKey().getName(), tcodes, dec.getValue().getLeadLnNumber(), dec.getValue().getLeadColNumber()));
+      instrs.add(
+          new DataLabelInstr(fmap.get(dec.getValue().getIdentity().getSignature()).label,
+              tcodes, dec.getValue().getLeadLnNumber(), dec.getValue().getLeadColNumber()));
     }
         
     //Compile top-level functions
