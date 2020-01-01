@@ -22,7 +22,9 @@ import jg.cs.compile.parser.ExprBuilder;
 import jg.cs.compile.parser.TurtleParser;
 import jg.cs.compile.parser.TurtleTokenizer;
 import jg.cs.inter.IRCompiler;
-import jg.cs.inter.Result;
+import jg.cs.inter.RunnableUnit;
+import jg.cs.inter.instruction.Instr;
+import jg.cs.runtime.Executor;
 import net.percederberg.grammatica.parser.ParseException;
 import net.percederberg.grammatica.parser.ParserCreationException;
 import net.percederberg.grammatica.parser.ParserLogException;
@@ -82,23 +84,21 @@ public class Main {
         typeChecker.checkType();
         
         IRCompiler compiler = new IRCompiler(program);
-        Result result = compiler.compile();
+        RunnableUnit result = compiler.compile();
         
-        Arrays.asList(result.getInstructions()).forEach(x -> System.out.println(x == null ? "" : (x.getLineNumber()+" | "+x)));
-        
-        /*
-        //System.out.println("-------------EXECUTING-------------");
-        //Executor executor = new Executor(program);
-        try {
-          //Value<?> result = executor.execute();
-        } catch (ExecException e) {
-          System.err.println(e.getMessage());
-          System.err.println("Exiting......");
-          System.exit(-1);
+        int i = 0;
+        for (Instr x : result.getInstructions()) {
+          if (x == null) {
+            System.out.println("  | "+i);
+          }
+          else {
+            System.out.println((x.getLineNumber()+" | "+i+" "+x));
+          }
+          i++;
         }
         
-        //System.out.println(" -----> FINAL: "+result);
-         */
+        Executor executor = new Executor(null, null, null, result);
+        executor.init();
       }
       else {
         System.err.println("turtle: Provided source file is either nonexistant or unreadble!");
@@ -178,7 +178,10 @@ public class Main {
         System.err.println("turtle: IO Error encountered while reading "+source.getName());
       }
       
-      String allValidLines = nonCommentLines.stream().collect(Collectors.joining(System.lineSeparator()));
+      String allValidLines = nonCommentLines.stream().collect(Collectors.joining("\n"));
+      
+      System.out.println("----------VALIDS:");
+      System.out.println(allValidLines);
       
       Tokenizer tokenizer = new TurtleTokenizer(new StringReader(allValidLines));
       ArrayList<Token> allTokens = new ArrayList<>();

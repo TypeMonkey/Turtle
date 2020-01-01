@@ -46,7 +46,6 @@ import jg.cs.inter.instruction.MutateInstr;
 import jg.cs.inter.instruction.NoArgInstr.NAInstr;
 import jg.cs.inter.instruction.RetrieveInstr;
 import jg.cs.inter.instruction.StoreInstr;
-import jg.cs.inter.instruction.StoreInstr.StoreType;
 import jg.cs.inter.instruction.NoArgInstr;
 
 
@@ -148,7 +147,7 @@ public class IRCompiler {
     this.program = program;
   }
   
-  public Result compile(){
+  public RunnableUnit compile(){
     ArrayList<Instr> instrs = new ArrayList<Instr>();
     
     /*
@@ -247,13 +246,17 @@ public class IRCompiler {
       }
     }
     
+    //entry point label that'll act as out main
+    int mainIndex = instrs.size();
+    instrs.add(new LabelInstr(genLabel("entryPoint"), -1, -1));
+    
     //parse top-level statements
     for (Expr x : program.getExprList()) {
       /*
        * TODO: Remove these after debugging. These are just helpful for separating code visually
        */
       instrs.add(null);
-      
+     
       instrs.addAll(compileExpr(x, new ArrayList<>(), fwrap(fmap), 0).instrs);
       
       /*
@@ -268,7 +271,7 @@ public class IRCompiler {
       types[t.getValue()] = t.getKey();
     }
     
-    return new Result(fmap, instrs.toArray(new Instr[instrs.size()]), types);
+    return new RunnableUnit(fmap, instrs.toArray(new Instr[instrs.size()]), types, mainIndex);
   }
   
   private InstrAndType compileExpr(Expr expr,  
@@ -287,7 +290,7 @@ public class IRCompiler {
     else if (expr instanceof NullValue) {
       NullValue nullValue = (NullValue) expr;
       return new InstrAndType(nullValue.getActualValue().getActualValue(), 
-          new LoadInstr<Long>(LoadType.RLOAD, 0L, nullValue.getLeadLnNumber(), nullValue.getLeadColNumber()));
+          new LoadInstr<Long>(LoadType.MLOAD, 0L, nullValue.getLeadLnNumber(), nullValue.getLeadColNumber()));
     }
     else if (expr instanceof Identifier) {
       return compileIden((Identifier) expr, indexMaps, fMaps, stackIndex);
@@ -354,11 +357,7 @@ public class IRCompiler {
       List<Map<String, TypeAndIndex>> indexMaps, 
       List<Map<FunctionSignature, LabelAndFunc>> fMaps, 
       long stackIndex){
-    /*
-     * Encode integer so that left most bit is:
-     * 1 -> if primitive
-     * 0 -> if reference
-     */
+    
     long value = expr.getActualValue();
     return new InstrAndType(Type.INTEGER, new LoadInstr<Long>(LoadType.ICLOAD, value, expr.getLeadLnNumber(), expr.getLeadColNumber()));
   }
@@ -367,12 +366,8 @@ public class IRCompiler {
       List<Map<String, TypeAndIndex>> indexMaps, 
       List<Map<FunctionSignature, LabelAndFunc>> fMaps,
       long stackIndex){
-    /*
-     * Encode integer so that left most bit is:
-     * 1 -> if primitive
-     * 0 -> if reference
-     */
-    long value = expr.getActualValue() ? 1 : 2;
+    
+    long value = expr.getActualValue() ? 1 : 0;
     return new InstrAndType(Type.BOOLEAN, new LoadInstr<Long>(LoadType.ICLOAD, value, expr.getLeadLnNumber(), expr.getLeadColNumber()));
   }
   
@@ -389,10 +384,14 @@ public class IRCompiler {
       long stackIndex) {
     TypeAndIndex varTypeAndIndex = find(expr.getActualValue(), indexMaps);
         
+    return new InstrAndType(Type.BOOLEAN, 
+        new LoadInstr<Long>(LoadType.MLOAD, varTypeAndIndex.index, expr.getLeadLnNumber(), expr.getLeadColNumber()));
+    
+    /*
     //check for the three primitives
     if (varTypeAndIndex.getType().equals(Type.BOOLEAN)) {
       return new InstrAndType(Type.BOOLEAN, 
-          new LoadInstr<Long>(LoadType.ILOAD, varTypeAndIndex.index, expr.getLeadLnNumber(), expr.getLeadColNumber()));
+          new LoadInstr<Long>(LoadType.MLOAD, varTypeAndIndex.index, expr.getLeadLnNumber(), expr.getLeadColNumber()));
     }
     else if (varTypeAndIndex.getType().equals(Type.INTEGER)) {
       return new InstrAndType(Type.INTEGER, 
@@ -406,6 +405,7 @@ public class IRCompiler {
       return new InstrAndType(varTypeAndIndex.type, 
           new LoadInstr<Long>(LoadType.RLOAD, varTypeAndIndex.index, expr.getLeadLnNumber(), expr.getLeadColNumber()));
     }
+    */
   }
   
   private InstrAndType compileFuncDef(FunctDefExpr expr, 
@@ -477,7 +477,7 @@ public class IRCompiler {
       InstrAndType result = compileExpr(valueExpr, concatToFront(localEnv, indexMaps), fMaps, stackIndex);
       instrs.addAll(result.getInstrs());
       
-      instrs.add(new StoreInstr(StoreInstr.properStoreType(result.getType()), stackIndex, valueExpr.getLeadLnNumber(), valueExpr.getLeadColNumber()));      
+      instrs.add(new StoreInstr(stackIndex, valueExpr.getLeadLnNumber(), valueExpr.getLeadColNumber()));      
       localEnv.put(localVar.getKey(), new TypeAndIndex(stackIndex, result.getType()));
       stackIndex++;
     }
@@ -622,7 +622,7 @@ public class IRCompiler {
     
     TypeAndIndex var = find(expr.getIdentifier().getActualValue(), indexMaps);
     
-    instrs.add(new StoreInstr(StoreInstr.properStoreType(newValueResult.type), var.index, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
+    instrs.add(new StoreInstr(var.index, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
     
     return new InstrAndType(instrs, newValueResult.type);
   }
@@ -640,7 +640,7 @@ public class IRCompiler {
     for (Expr arg : expr.getArguments()) {
       InstrAndType argResult = compileExpr(arg, indexMaps, fMaps, stackIndex);
       instrs.addAll(argResult.instrs);
-      instrs.add(new StoreInstr(StoreInstr.properStoreType(argResult.type), stackIndex, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
+      instrs.add(new StoreInstr(stackIndex, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
       argTypes[startIndex] = argResult.type;
       System.out.println("RESL "+argResult.type+" | "+arg+" | "+indexMaps);
       startIndex++;

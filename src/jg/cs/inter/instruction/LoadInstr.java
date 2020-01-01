@@ -14,9 +14,7 @@ public class LoadInstr<T> extends Instr{
     /**
      * Loads from address
      */
-    ILOAD,
-    SLOAD,
-    RLOAD,
+    MLOAD,
     
     /**
      * Loads from constant

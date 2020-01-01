@@ -10,24 +10,24 @@ import java.util.NoSuchElementException;
  * 
  * When creating a new frame/calling a function,
  * it's essential that registerFrame() is called
- * before any arguments or local variables are stored
+ * AFTER arguments have been placed on the stack
  * 
  * When exiting a frame/returing to a caller,
  * it's essential that exitFrame() is called 
  * @author Jose
  *
  */
-interface FunctionStack {
+public interface FunctionStack {
 
   /**
    * Registers a new frame on to the function stack
    */
-  void registerFrame();
+  public void registerFrame();
   
   /**
    * Exits the current frame
    */
-  void exitFrame();
+  public void exitFrame();
   
   /**
    * Retrieves a value from the current frame at a given offset
@@ -36,24 +36,25 @@ interface FunctionStack {
    * 
    * @throws IllegalArgumentException - if the offset is invalid
    */
-  long retrieveAtOffset(long offset) throws IllegalArgumentException;
+  public long retrieveAtOffset(long offset) throws IllegalArgumentException;
   
   /**
    * Saves a value to the given offset on the current frame
    * @param offset - the offset, with respect to the current frame
+   * @param value - the value to save
    * @throws IllegalArgumentException - if the offset is invalid
    */
-  void saveAtOffset(long offset) throws IllegalArgumentException;
+  public void saveAtOffset(long offset, long value) throws IllegalArgumentException;
   
   /**
    * Gets the total values stored onto the stack
    * @return the total values stored onto the stack
    */
-  long getTotalElements();
+  public long getTotalElements();
   
   /**
    * Gets the number of frames registered on the stack
    * @return the number of frames registered on the stack
    */
-  long getTotalFrames();
+  public long getTotalFrames();
 }

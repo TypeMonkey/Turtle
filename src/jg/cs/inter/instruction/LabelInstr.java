@@ -16,6 +16,10 @@ public class LabelInstr extends Instr{
     this.labelName = labelName;
   }
   
+  public String getLabel() {
+    return labelName;
+  }
+  
   @Override
   public String toString() {
     return labelName+":~~~~~";

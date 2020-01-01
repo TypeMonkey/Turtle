@@ -1,5 +1,6 @@
 package jg.cs.runtime.alloc;
 
+import java.util.EmptyStackException;
 import java.util.NoSuchElementException;
 
 /**
@@ -24,9 +25,9 @@ public interface OperandStack {
   /**
    * Pops an operand from the top of the stack
    * @return the topmost operand
-   * @throws NoSuchElementException - there are no more elements on the stack
+   * @throws EmptyStackException - there are no more elements on the stack
    */
-  long popOperand() throws NoSuchElementException;
+  long popOperand() throws EmptyStackException;
   
   /**
    * Returns the amount of operands currently on the stack

@@ -12,22 +12,29 @@ import jg.cs.inter.instruction.Instr;
  * @author Jose
  *
  */
-public class Result {
+public class RunnableUnit {
   
   private final Map<FunctionSignature, LabelAndFunc> builtInLabels;
   private final Instr [] instructions;
   private final Type [] types;
+  private final int mainLabel;
   
   /**
    * Constructs a Result
    * @param builtInLabel - the IR labels of the built-in functions of Turtle
    * @param instructions - the IR Turtle Instructions 
    * @param types - the type codes of compiled for this program
+   * @param mainLabel - the index at which that main label is
    */
-  public Result(Map<FunctionSignature, LabelAndFunc> builtInLabel, Instr [] instructions, Type [] types) {
+  public RunnableUnit(Map<FunctionSignature, 
+      LabelAndFunc> builtInLabel, 
+      Instr [] instructions, 
+      Type [] types,
+      int mainLabel) {
     this.builtInLabels = builtInLabel;
     this.instructions = instructions;
     this.types = types;
+    this.mainLabel = mainLabel;
   }
 
   /**
@@ -52,5 +59,13 @@ public class Result {
    */
   public Type[] getTypes() {
     return types;
+  }
+  
+  /**
+   * Returns the index of the main label
+   * @return the index of the main label
+   */
+  public int getMainLabel() {
+    return mainLabel;
   }
 }
