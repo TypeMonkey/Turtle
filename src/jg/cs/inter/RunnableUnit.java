@@ -26,8 +26,7 @@ public class RunnableUnit {
    * @param types - the type codes of compiled for this program
    * @param mainLabel - the index at which that main label is
    */
-  public RunnableUnit(Map<FunctionSignature, 
-      LabelAndFunc> builtInLabel, 
+  public RunnableUnit(Map<FunctionSignature, LabelAndFunc> builtInLabel, 
       Instr [] instructions, 
       Type [] types,
       int mainLabel) {

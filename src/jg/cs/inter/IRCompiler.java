@@ -47,6 +47,7 @@ import jg.cs.inter.instruction.LoadInstr.LoadType;
 import jg.cs.inter.instruction.MutateInstr;
 import jg.cs.inter.instruction.NoArgInstr.NAInstr;
 import jg.cs.inter.instruction.RetrieveInstr;
+import jg.cs.inter.instruction.SaveFpInstr;
 import jg.cs.inter.instruction.StoreInstr;
 import jg.cs.inter.instruction.NoArgInstr;
 
@@ -185,22 +186,17 @@ public class IRCompiler {
     instrs.add(new DataLabelInstr(Type.INTEGER.getName(), new int[0], -1, -1));
     instrs.add(new DataLabelInstr(Type.BOOLEAN.getName(), new int[0], -1, -1));
     instrs.add(new DataLabelInstr(Type.STRING.getName(), new int[0], -1, -1));
-
     
     /*
      * Assign labels to top level functions, and built in functions
      */
     HashMap<FunctionSignature, LabelAndFunc> fmap = new HashMap<>();
-    
-    HashMap<FunctionSignature, LabelAndFunc> builtInLabel = new HashMap<>();
-    
+            
     //add built-ins
-    for (Entry<FunctionSignature, BuiltInFunctions> builtin : BuiltInFunctions.BUILT_IN_MAP.entrySet()) {
+    for (Entry<FunctionSignature, FunctionLike> builtin : BuiltInFunctions.BUILT_IN_MAP.entrySet()) {
       LabelAndFunc bilt = new LabelAndFunc(genLabel(builtin.getKey().getName()), builtin.getValue());
       fmap.put(builtin.getValue().getIdentity().getSignature(), 
-          bilt);
-      
-      builtInLabel.put(builtin.getValue().getIdentity().getSignature(), bilt);
+          bilt);    
     }  
     
     int dataCode = 3;
@@ -228,6 +224,17 @@ public class IRCompiler {
           new DataLabelInstr(fmap.get(dec.getValue().getIdentity().getSignature()).label,
               tcodes, dec.getValue().getLeadLnNumber(), dec.getValue().getLeadColNumber()));
     }
+    
+    //Go over built-in functions and place their label
+    for (Entry<FunctionSignature, FunctionLike> builtin : BuiltInFunctions.BUILT_IN_MAP.entrySet()) {
+      LabelAndFunc bilt = fmap.get(builtin.getKey());
+      
+      BuiltInFunctions specific = (BuiltInFunctions) builtin.getValue();
+      
+      instrs.add(new LabelInstr(bilt.label, specific.getIrCode(), -1, -1));
+      instrs.add(new NoArgInstr(NAInstr.RET, -1, -1));
+      System.out.println(" !!!! SET B LABEL: "+bilt.label);
+    }
         
     //Compile top-level functions
     for (FunctionLike funcs : program.getFileFunctions().values()) {
@@ -250,7 +257,7 @@ public class IRCompiler {
     
     //entry point label that'll act as out main
     int mainIndex = instrs.size();
-    instrs.add(new LabelInstr(genLabel("entryPoint"), -1, -1));
+    instrs.add(new LabelInstr(genLabel("entryPoint"), -1, -1, -1));
     
     //parse top-level statements
     for (Expr x : program.getExprList()) {
@@ -419,7 +426,7 @@ public class IRCompiler {
     //add function label
     instrs.add(new LabelInstr(
         find(expr.getIdentity().getSignature(), fMaps).label, 
-        expr.getParameterCount(), 
+        -1, 
         expr.getLeadLnNumber(), 
         expr.getLeadColNumber()));
     
@@ -429,6 +436,7 @@ public class IRCompiler {
     //assign indices to function arguments first
     for (Entry<String, IdenTypeValTuple> param : expr.getParameters().entrySet()) {
       localEnv.put(param.getKey(), new TypeAndIndex(stackIndex, param.getValue().getType()));
+      instrs.add(new StoreInstr(stackIndex, -1, -1));
       stackIndex++;
     }
     
@@ -453,7 +461,7 @@ public class IRCompiler {
         nested.put(nestedFunc.getIdentity().getSignature(), labelAndFunc);
         
         //label to skip to so that nested function isn't executed
-        instrs.add(new LabelInstr(skipLabel, nestedFunc.getLeadLnNumber(), nestedFunc.getLeadColNumber()));
+        instrs.add(new LabelInstr(skipLabel, -1, nestedFunc.getLeadLnNumber(), nestedFunc.getLeadColNumber()));
       }
       else {
         InstrAndType result = compileExpr(bod, concatToFront(localEnv, indexMaps), fconcat(nested, fMaps), stackIndex);
@@ -477,15 +485,14 @@ public class IRCompiler {
     ArrayList<Instr> instrs = new ArrayList<Instr>();
     
     int startIndex = 0;
-    
+        
     Type [] argTypes = new Type[expr.getArguments().size()];
-    for (Expr arg : expr.getArguments()) {
-      InstrAndType argResult = compileExpr(arg, indexMaps, fMaps, stackIndex);
-      instrs.addAll(argResult.instrs);
-      instrs.add(new StoreInstr(stackIndex + 2, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
+    for (Expr arg : expr.getArguments()) {    
+      //store all arguments on op stack
+      InstrAndType argResult = compileExpr(arg, indexMaps, fMaps, stackIndex + 1);
+      instrs.addAll(argResult.instrs);     
       argTypes[startIndex] = argResult.type;
       startIndex++;
-      stackIndex++;
     }
     
     FunctionSignature targetFunction = new FunctionSignature(expr.getFuncName().getImage(), argTypes);
@@ -496,18 +503,14 @@ public class IRCompiler {
     System.out.println("   -> SI "+stackIndex);
     System.out.println("   -> TARGET LABEL: "+found.label);
     
+    instrs.add(new SaveFpInstr(stackIndex, -1, -1));
+    instrs.add(new IncfpInstr(stackIndex, -1, -1));
     instrs.add(new NoArgInstr(NAInstr.SAVECALL, -1, -1));
-    instrs.add(new IncfpInstr(expr.getArgCount(), -1, -1));
-
+    instrs.add(new JumpInstr(Jump.CALL, found.label, expr.getLeadLnNumber(), expr.getLeadLnNumber()));   
     
-    if (BuiltInFunctions.BUILT_IN_MAP.containsKey(targetFunction)) {
-      instrs.add(new JumpInstr(Jump.CALLI, found.label, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
-    }
-    else {
-      instrs.add(new JumpInstr(Jump.CALL, found.label, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
-    }
     instrs.add(new IncfpInstr(-expr.getArgCount(), -1, -1));
     
+    System.out.println("----> CALL: "+instrs);
     return new InstrAndType(instrs, found.getFunction().getIdentity().getReturnType());
   }
 
@@ -551,7 +554,7 @@ public class IRCompiler {
         nested.put(nestedFunc.getIdentity().getSignature(), labelAndFunc);
         
         //label to skip to so that nested function isn't executed
-        instrs.add(new LabelInstr(skipLabel, nestedFunc.getLeadLnNumber(), nestedFunc.getLeadColNumber()));
+        instrs.add(new LabelInstr(skipLabel, -1, nestedFunc.getLeadLnNumber(), nestedFunc.getLeadColNumber()));
       }
       else {
         resultType = compileExpr(bod, concatToFront(localEnv, indexMaps), fconcat(nested, fMaps), stackIndex);
@@ -586,10 +589,10 @@ public class IRCompiler {
     instrs.add(new JumpInstr(Jump.JMP, endLabel, expr.getLeadLnNumber(), expr.getLeadColNumber()));
     
     InstrAndType trueBranch = compileExpr(expr.getTrueConseq(), indexMaps, fMaps, stackIndex);
-    instrs.add(new LabelInstr(trueLabel, expr.getLeadLnNumber(), expr.getLeadColNumber()));
+    instrs.add(new LabelInstr(trueLabel, -1, expr.getLeadLnNumber(), expr.getLeadColNumber()));
     instrs.addAll(trueBranch.instrs);
     
-    instrs.add(new LabelInstr(endLabel, expr.getLeadLnNumber(), expr.getLeadColNumber()));
+    instrs.add(new LabelInstr(endLabel, -1, expr.getLeadLnNumber(), expr.getLeadColNumber()));
     
     return new InstrAndType(instrs, falseBranch.getType());
   }
@@ -711,7 +714,7 @@ public class IRCompiler {
         nested.put(nestedFunc.getIdentity().getSignature(), labelAndFunc);
         
         //label to skip to so that nested function isn't executed
-        instrs.add(new LabelInstr(skipLabel, nestedFunc.getLeadLnNumber(), nestedFunc.getLeadColNumber()));
+        instrs.add(new LabelInstr(skipLabel, -1, nestedFunc.getLeadLnNumber(), nestedFunc.getLeadColNumber()));
       }
       else {
         result = compileExpr(bod, indexMaps, fconcat(nested, fMaps), stackIndex);
@@ -719,7 +722,7 @@ public class IRCompiler {
       }
     }
     
-    instrs.add(new LabelInstr(endLabel, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
+    instrs.add(new LabelInstr(endLabel, -1, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
     
     return new InstrAndType(instrs, result.type);
   }

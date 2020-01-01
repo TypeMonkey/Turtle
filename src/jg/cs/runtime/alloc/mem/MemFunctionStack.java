@@ -30,6 +30,7 @@ public class MemFunctionStack implements FunctionStack{
 
   @Override
   public long retrieveAtOffset(long offset) throws IllegalArgumentException {
+    System.out.println(" --< FSTACK: RETREIVING AT: "+(index + offset));
     return fstack[(int) (index + offset)];
   }
 
@@ -40,6 +41,7 @@ public class MemFunctionStack implements FunctionStack{
       saveAtOffset(offset, value);
     }
     else {
+      System.out.println(" --< FSTACK: SAVING AT AT: "+(index + offset)+" | "+value);
       fstack[(int) (index + offset)] = value;
     }
   }
@@ -58,6 +60,11 @@ public class MemFunctionStack implements FunctionStack{
   @Override
   public long getTotalFrames() {
     return frames;
+  }
+  
+  @Override
+  public long getRealAddress(long offset) {
+    return offset + index;
   }
 
   @Override

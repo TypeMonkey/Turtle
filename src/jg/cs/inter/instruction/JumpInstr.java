@@ -30,12 +30,10 @@ public class JumpInstr extends Instr{
      */
     JMP,
     
-    CALL,
-    
     /**
-     * Calls a built-in function
+     * Call a label
      */
-    CALLI; 
+    CALL; 
   }
   
   private final Jump jump;

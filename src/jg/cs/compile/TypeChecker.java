@@ -13,6 +13,7 @@ import jg.cs.common.FunctionLike;
 import jg.cs.common.FunctionSignature;
 import jg.cs.common.OperatorKind;
 import jg.cs.common.types.Type;
+import jg.cs.compile.errors.DuplicateFunctionException;
 import jg.cs.compile.errors.TypeMismatchException;
 import jg.cs.compile.errors.UnresolvableComponentException;
 import jg.cs.compile.nodes.BinaryOpExpr;
@@ -48,8 +49,13 @@ public class TypeChecker {
   public Type checkType() {    
     //System.out.println("---FMAP: "+program.getFileFunctions());
     Type latest = null;
+    
+    ArrayList<Map<FunctionSignature, FunctionLike>> fenv = new ArrayList<>();
+    fenv.add(BuiltInFunctions.BUILT_IN_MAP);
+    fenv.add(program.getFileFunctions());
+    
     for (Expr component : program.getExprList()) {
-      latest = checkExpr(component, new ArrayList<>(), fwrap(program.getFileFunctions()));
+      latest = checkExpr(component, new ArrayList<>(), fenv);
     }   
     
     return latest;
@@ -352,6 +358,10 @@ public class TypeChecker {
       List<Map<String, IdenTypeValTuple>> others, 
       List<Map<FunctionSignature, FunctionLike>> fenv) {
     
+    if (findFunction(expr.getIdentity().getSignature(), fenv) != null) {
+      throw new DuplicateFunctionException(expr.getLeadToken(), expr.getIdentity().getSignature(), program.getFileName());
+    }
+    
     LinkedHashMap<String, IdenTypeValTuple> localEnv = new LinkedHashMap<>();
    
     //load all parameters variables. At each parameter, evaluate the type
@@ -413,6 +423,19 @@ public class TypeChecker {
       }
     }
     throw new UnresolvableComponentException(identifier, program.getFileName());
+  }
+  
+  //Helpful collection methods
+  
+  private FunctionLike findFunction(FunctionSignature signature, List<Map<FunctionSignature, FunctionLike>> others) {
+    for (Map<FunctionSignature, FunctionLike> map : others) {
+      FunctionLike found = map.get(signature);
+      if (found != null) {
+        return found;
+      }
+    }
+    
+    return null;
   }
   
   private List<Map<String, IdenTypeValTuple>> concatToFront(

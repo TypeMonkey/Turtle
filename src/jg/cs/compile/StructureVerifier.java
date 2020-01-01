@@ -57,7 +57,7 @@ public class StructureVerifier {
     //also, add all top level Data declarations in global struct map
     
     //add built-in functions too
-    for (Entry<FunctionSignature, BuiltInFunctions> builtin : BuiltInFunctions.BUILT_IN_MAP.entrySet()) {
+    for (Entry<FunctionSignature, FunctionLike> builtin : BuiltInFunctions.BUILT_IN_MAP.entrySet()) {
       topLevelFunctions.put(builtin.getValue().getIdentity().getSignature(), builtin.getValue());
     }
     

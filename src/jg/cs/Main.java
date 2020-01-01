@@ -42,7 +42,7 @@ public class Main {
    */
   public static void main(String[] args) {
     args = new String[1];
-    args[0] = "null.t";
+    args[0] = "str.t";
     
     if (args.length == 1 && getFileExtension(args[0]).equals("t")) {
       File targetFile = new File(args[0]);
@@ -116,9 +116,10 @@ public class Main {
         try {
           executor.execute();
         } catch (Exception e) {
+          System.err.println("----------ERROR----------");
           e.printStackTrace();
-          System.out.println(functionStack);
-          System.out.println(heapAllocator.getHeapRepresentation());
+          System.err.println(functionStack);
+          System.err.println(heapAllocator.getHeapRepresentation());
           
         }
       }

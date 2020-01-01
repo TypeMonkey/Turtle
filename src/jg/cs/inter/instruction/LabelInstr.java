@@ -10,29 +10,33 @@ import jg.cs.common.types.Type;
 public class LabelInstr extends Instr{
   
   private final String labelName;
-  private final int argAmount;
+  private final int riCode;
   
-  public LabelInstr(String labelName, int relativeLine, int relativeCol) {
-    this(labelName, 0, relativeLine, relativeCol);
-  }
-  
-  public LabelInstr(String labelName, int argAmount, int relativeLine, int relativeColumn) {
+  public LabelInstr(String labelName, int riCode, int relativeLine, int relativeColumn) {
     super(relativeLine, relativeColumn);
     this.labelName = labelName;
-    this.argAmount = argAmount;
+    this.riCode = riCode;
   }
   
+  public String getLabelName() {
+    return labelName;
+  }
+
+  public boolean isBuiltin() {
+    return riCode != -1;
+  }
+
   public String getLabel() {
     return labelName;
   }
   
-  public int getArgAmount() {
-    return argAmount;
+  public int getRiCode() {
+    return riCode;
   }
   
   @Override
   public String toString() {
-    return labelName+":"+(argAmount == 0 ? "" : argAmount)+"~~~~~";
+    return (isBuiltin() ? "("+riCode+")" : "")+labelName+":~~~~~";
   }
   
 }

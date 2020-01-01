@@ -18,6 +18,7 @@ import jg.cs.inter.instruction.MutateInstr;
 import jg.cs.inter.instruction.NoArgInstr;
 import jg.cs.inter.instruction.NoArgInstr.NAInstr;
 import jg.cs.inter.instruction.RetrieveInstr;
+import jg.cs.inter.instruction.SaveFpInstr;
 import jg.cs.inter.instruction.StoreInstr;
 import jg.cs.runtime.alloc.FunctionStack;
 import jg.cs.runtime.alloc.HeapAllocator;
@@ -110,13 +111,15 @@ public class Executor {
     for( ; instructionIndex < program.getInstructions().length ; instructionIndex++) {
       if (program.getInstructions()[instructionIndex] != null) {
         execInstr(program.getInstructions()[instructionIndex]);
-        System.out.println(fstack);
+        
+        System.out.println("!!!!!! STACK \n"+fstack);
+        System.out.println(operandStack);
       }
     }
   }
   
   private void execInstr(Instr instr) {
-    System.out.println("---CURRENT: "+instr);
+    System.out.println("---CURRENT["+instructionIndex+"]: "+instr);
     if (instr instanceof DataLabelInstr) {
       execDataLabel((DataLabelInstr) instr);
     }
@@ -124,7 +127,10 @@ public class Executor {
       execJump((JumpInstr) instr);
     }
     else if (instr instanceof LabelInstr) {
-      //no need to do anything
+      /*
+       * Only do something if label is builtin
+       */
+      execBuiltInFunc((LabelInstr) instr);
     }
     else if (instr instanceof LoadInstr<?>) {
       execLoad((LoadInstr<?>) instr);
@@ -144,6 +150,10 @@ public class Executor {
     else if (instr instanceof IncfpInstr) {
       IncfpInstr fpChangeInstr = (IncfpInstr) instr;
       fstack.changeFPBy(fpChangeInstr.getAmount());
+    }
+    else if (instr instanceof SaveFpInstr) {
+      SaveFpInstr fpChangeInstr = (SaveFpInstr) instr;
+      fstack.saveAtOffset(fpChangeInstr.getOffset() ,fstack.getCurrentFP());
     }
   }
   
@@ -169,10 +179,9 @@ public class Executor {
           translateToIndex(instr.getTargetLabel()) : instructionIndex;
     }
     else if (instr.getJump() == Jump.CALL) {
-      instructionIndex = translateToIndex(instr.getTargetLabel());
-    }
-    else if (instr.getJump() == Jump.CALLI) {
-      //TODO: calls built in     
+      System.out.println(" CALL INSTR: "+instr);
+      instructionIndex = translateToIndex(instr.getTargetLabel()) - 1;
+      System.out.println("---NEW INDEX "+instructionIndex);
     }
   }
   
@@ -270,13 +279,18 @@ public class Executor {
     }
     else if (instr.getInstr() == NAInstr.RET) {
       instructionIndex = (int) fstack.retrieveAtOffset(1);
+      System.out.println(" INIT INSTR INDEX CHANGE: "+instructionIndex);
+      /* The reason we do -1 is because the interpreter loop will
+       * Skip over changes to instructionIndex as it is changed DURING the loop.
+       * By doing -1, it'll increment it by 1 in the next loop and execute our desired instruction
+       */
+      instructionIndex--;
+      System.out.println("---RET: MAX: "+(program.getInstructions().length - 1) + " | change: "+instructionIndex);
     }
-    else if (instr.getInstr() == NAInstr.SAVECALL) {
-      fstack.saveAtOffset(0, fstack.getCurrentFP());
-      
+    else if (instr.getInstr() == NAInstr.SAVECALL) {      
       //+1 to skip over the current instruction
       //+2 to skip over the call instruction after this one
-      fstack.saveAtOffset(1, instructionIndex + 2);
+      fstack.saveAtOffset(1, instructionIndex + 3);
     }
   }
   
@@ -293,6 +307,14 @@ public class Executor {
     long value = operandStack.popOperand();
     
     fstack.saveAtOffset(address, value);
+  }
+  
+  private void execBuiltInFunc(LabelInstr labelInstr) {
+    if (labelInstr.isBuiltin()) {
+      System.out.println("----CALLING BUILT IN");
+      BuiltInExecutor.executeBuiltIn(labelInstr.getRiCode(), fstack, operandStack, heapAllocator);
+    }
+    //if not a built in label, don't do anything
   }
   
   private int translateToIndex(String label) {

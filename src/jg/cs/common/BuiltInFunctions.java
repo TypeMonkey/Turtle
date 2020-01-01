@@ -26,46 +26,47 @@ public enum BuiltInFunctions implements FunctionLike{
   /**
    * Blocks for an input string on standard input. Returns input as a string
    */
-  INPUT(new FunctionIdentity(new FunctionSignature("input", Type.VOID), Type.STRING)),
+  INPUT(new FunctionIdentity(new FunctionSignature("input", Type.VOID), Type.STRING),0),
   
   /**
    * Prints a string to stdout, without a new line at the end
    */
-  PRINT(new FunctionIdentity(new FunctionSignature("print", Type.STRING), Type.STRING)),
+  PRINT(new FunctionIdentity(new FunctionSignature("print", Type.STRING), Type.STRING),1),
   
   /**
    * Prints a string to stdout, with a new line at the end
    */
-  PRINTLN(new FunctionIdentity(new FunctionSignature("println", Type.STRING), Type.STRING)),
+  PRINTLN(new FunctionIdentity(new FunctionSignature("println", Type.STRING), Type.STRING),2),
   
   /**
    * Returns an integer with incremented by one
    */
-  INC(new FunctionIdentity(new FunctionSignature("inc", Type.INTEGER), Type.INTEGER)),
+  INC(new FunctionIdentity(new FunctionSignature("inc", Type.INTEGER), Type.INTEGER),3),
   
   /**
    * Returns an integer with decremented by one
    */
-  DEC(new FunctionIdentity(new FunctionSignature("dec", Type.INTEGER), Type.INTEGER)),
+  DEC(new FunctionIdentity(new FunctionSignature("dec", Type.INTEGER), Type.INTEGER),4),
   
   /**
    * Returns the size of a string
    */
-  LEN(new FunctionIdentity(new FunctionSignature("len", Type.STRING), Type.INTEGER)),
+  LEN(new FunctionIdentity(new FunctionSignature("len", Type.STRING), Type.INTEGER),5),
   
   /**
    * Returns the string representation of an integer
    */
-  TO_STR_I(new FunctionIdentity(new FunctionSignature("toStr", Type.INTEGER), Type.STRING)),
+  TO_STR_I(new FunctionIdentity(new FunctionSignature("toStr", Type.INTEGER), Type.STRING),6),
   
   /**
    * Returns the string representation of a boolean
    */
-  TO_STR_B(new FunctionIdentity(new FunctionSignature("toStr", Type.BOOLEAN), Type.STRING));
+  TO_STR_B(new FunctionIdentity(new FunctionSignature("toStr", Type.BOOLEAN), Type.STRING),7);
   
   private final FunctionIdentity identity;
+  private final int irCode; 
   
-  public static final Map<FunctionSignature, BuiltInFunctions> BUILT_IN_MAP;
+  public static final Map<FunctionSignature, FunctionLike> BUILT_IN_MAP;
   static {
     HashMap<FunctionSignature, BuiltInFunctions> temp = new HashMap<>();
     
@@ -77,8 +78,18 @@ public enum BuiltInFunctions implements FunctionLike{
   }
 
   
-  private BuiltInFunctions(FunctionIdentity identity) {
+  private BuiltInFunctions(FunctionIdentity identity, int irCode) {
     this.identity = identity;
+    this.irCode = irCode;
+  }
+  
+  /**
+   * Used during the compilation and execution of IR Code
+   * to quickly identify which built-in function is which.
+   * @return this BuiltInFunction's IR Code
+   */
+  public int getIrCode() {
+    return irCode;
   }
   
   public FunctionIdentity getIdentity() {

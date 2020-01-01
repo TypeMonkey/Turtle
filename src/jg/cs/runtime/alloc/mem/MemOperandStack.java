@@ -3,6 +3,7 @@ package jg.cs.runtime.alloc.mem;
 import java.util.NoSuchElementException;
 import java.util.Stack;
 
+import jg.cs.runtime.Executor;
 import jg.cs.runtime.alloc.OperandStack;
 
 public class MemOperandStack implements OperandStack{
@@ -33,5 +34,9 @@ public class MemOperandStack implements OperandStack{
   public void clear() {
     stack.clear();
   }
-
+  
+  @Override
+  public String toString() {
+    return "=====OPERAND STACK=====\n"+stack;
+  }
 }

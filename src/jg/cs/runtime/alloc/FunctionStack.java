@@ -37,6 +37,8 @@ public interface FunctionStack {
    */
   public void saveAtOffset(long offset, long value) throws IllegalArgumentException;
   
+  public long getRealAddress(long offset);
+  
   /**
    * Gets the total values stored onto the stack
    * @return the total values stored onto the stack
