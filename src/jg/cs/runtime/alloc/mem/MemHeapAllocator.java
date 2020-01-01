@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
+import jg.cs.runtime.Executor;
 import jg.cs.runtime.alloc.FunctionStack;
 import jg.cs.runtime.alloc.HeapAllocator;
 
@@ -77,7 +78,7 @@ public class MemHeapAllocator implements HeapAllocator{
       throw new OutOfMemoryError("Need "+(currentIndex + Math.floor(encoded.length / 8))+" bytes!, USED: "+usedSpace+" bytes");
     }
     
-    long startAddress = currentIndex;
+    long startAddress = (currentIndex << 1);
     
     heap[currentIndex] = STRING_GC_MASK;
     heap[++currentIndex] = (encoded.length << 1) + 1;
@@ -89,17 +90,19 @@ public class MemHeapAllocator implements HeapAllocator{
       currentIndex++;
     }
     
+    usedSpace += 2 + (encoded.length / 8);
+    
     return startAddress;
   }
 
   @Override
   public long get(long address, long offset) {
-    return heap[(int) (address + offset + 1)];
+    return heap[(int) ( (address>>>1) + offset + 1)];
   }
 
   @Override
   public long mutate(long address, long offset, long newValue) {
-    heap[(int) (address + offset + 1)] = newValue;
+    heap[(int) ((address>>>1) + offset + 1)] = newValue;
     return address;
   }
 
@@ -129,8 +132,18 @@ public class MemHeapAllocator implements HeapAllocator{
 
   @Override
   public String getHeapRepresentation() {
-    // TODO Auto-generated method stub
-    return null;
+    String x = "=======HEAP=======TAKEN:"+usedSpace+"\n";
+    
+    final long SIGN_BIT_MASK = 0x8000000000000000L;
+    
+    for (int i = 0; i <= usedSpace; i++) {
+      long val = heap[i] & Executor.TAG_MASK; 
+      long signBit = heap[i] & SIGN_BIT_MASK;
+      x += i+" | "+(val == 1 ? ((heap[i] >>> 1) | signBit) : Long.toHexString(heap[i]))+"\n";
+    }
+    
+    x += "=======HEAP=======TOTAL:"+heap.length;
+    return x;
   }
 
 }

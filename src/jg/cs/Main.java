@@ -25,6 +25,9 @@ import jg.cs.inter.IRCompiler;
 import jg.cs.inter.RunnableUnit;
 import jg.cs.inter.instruction.Instr;
 import jg.cs.runtime.Executor;
+import jg.cs.runtime.alloc.mem.MemFunctionStack;
+import jg.cs.runtime.alloc.mem.MemHeapAllocator;
+import jg.cs.runtime.alloc.mem.MemOperandStack;
 import net.percederberg.grammatica.parser.ParseException;
 import net.percederberg.grammatica.parser.ParserCreationException;
 import net.percederberg.grammatica.parser.ParserLogException;
@@ -39,7 +42,7 @@ public class Main {
    */
   public static void main(String[] args) {
     args = new String[1];
-    args[0] = "sample.t";
+    args[0] = "null.t";
     
     if (args.length == 1 && getFileExtension(args[0]).equals("t")) {
       File targetFile = new File(args[0]);
@@ -64,6 +67,10 @@ public class Main {
         List<Expr> components = null;
         try {
           components = parse(tokens);
+          
+          System.out.println("----EXPRS");
+          components.forEach(x -> System.out.println(x));
+          System.out.println("----EXPRS");
         } catch (ParserLogException e) {
           System.err.println("turtle: "+e.getMessage());
           System.exit(-1);
@@ -97,8 +104,23 @@ public class Main {
           i++;
         }
         
-        Executor executor = new Executor(null, null, null, result);
+        MemFunctionStack functionStack = new MemFunctionStack();
+        MemOperandStack operandStack = new MemOperandStack();
+        MemHeapAllocator heapAllocator = new MemHeapAllocator(1000);
+        
+        Executor executor = new Executor(functionStack, 
+            operandStack, heapAllocator, result);
         executor.init();
+        
+        System.out.println("-------EXECUTING!!!!-------  MAX HEAP: "+heapAllocator.getMaxSpace());
+        try {
+          executor.execute();
+        } catch (Exception e) {
+          e.printStackTrace();
+          System.out.println(functionStack);
+          System.out.println(heapAllocator.getHeapRepresentation());
+          
+        }
       }
       else {
         System.err.println("turtle: Provided source file is either nonexistant or unreadble!");

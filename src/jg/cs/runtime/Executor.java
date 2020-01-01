@@ -7,6 +7,7 @@ import jg.cs.common.types.Type;
 import jg.cs.compile.nodes.RetrieveExpr;
 import jg.cs.inter.RunnableUnit;
 import jg.cs.inter.instruction.DataLabelInstr;
+import jg.cs.inter.instruction.IncfpInstr;
 import jg.cs.inter.instruction.Instr;
 import jg.cs.inter.instruction.JumpInstr;
 import jg.cs.inter.instruction.JumpInstr.Jump;
@@ -24,9 +25,9 @@ import jg.cs.runtime.alloc.OperandStack;
 
 public class Executor {
   
-  private static final long TRUE = 3;
-  private static final long FALSE = 1;
-  private static final long TAG_MASK = 0x00000001;
+  public static final long TRUE = 3;
+  public static final long FALSE = 1;
+  public static final long TAG_MASK = 0x0000000000000001L;
 
   private final FunctionStack fstack;
   private final OperandStack operandStack;
@@ -107,11 +108,15 @@ public class Executor {
      * Booleans: True = 3, False = 1
      */
     for( ; instructionIndex < program.getInstructions().length ; instructionIndex++) {
-      execInstr(program.getInstructions()[instructionIndex]);
+      if (program.getInstructions()[instructionIndex] != null) {
+        execInstr(program.getInstructions()[instructionIndex]);
+        System.out.println(fstack);
+      }
     }
   }
   
   private void execInstr(Instr instr) {
+    System.out.println("---CURRENT: "+instr);
     if (instr instanceof DataLabelInstr) {
       execDataLabel((DataLabelInstr) instr);
     }
@@ -120,7 +125,6 @@ public class Executor {
     }
     else if (instr instanceof LabelInstr) {
       //no need to do anything
-      execLoad((LoadInstr<?>) instr);
     }
     else if (instr instanceof LoadInstr<?>) {
       execLoad((LoadInstr<?>) instr);
@@ -136,6 +140,10 @@ public class Executor {
     }
     else if (instr instanceof StoreInstr) {
       execStore((StoreInstr) instr);
+    }
+    else if (instr instanceof IncfpInstr) {
+      IncfpInstr fpChangeInstr = (IncfpInstr) instr;
+      fstack.changeFPBy(fpChangeInstr.getAmount());
     }
   }
   
@@ -161,7 +169,6 @@ public class Executor {
           translateToIndex(instr.getTargetLabel()) : instructionIndex;
     }
     else if (instr.getJump() == Jump.CALL) {
-      fstack.registerFrame();
       instructionIndex = translateToIndex(instr.getTargetLabel());
     }
     else if (instr.getJump() == Jump.CALLI) {
@@ -262,7 +269,14 @@ public class Executor {
       operandStack.pushOperand(result);
     }
     else if (instr.getInstr() == NAInstr.RET) {
-      fstack.exitFrame();
+      instructionIndex = (int) fstack.retrieveAtOffset(1);
+    }
+    else if (instr.getInstr() == NAInstr.SAVECALL) {
+      fstack.saveAtOffset(0, fstack.getCurrentFP());
+      
+      //+1 to skip over the current instruction
+      //+2 to skip over the call instruction after this one
+      fstack.saveAtOffset(1, instructionIndex + 2);
     }
   }
   
@@ -279,7 +293,6 @@ public class Executor {
     long value = operandStack.popOperand();
     
     fstack.saveAtOffset(address, value);
-    operandStack.pushOperand(address);
   }
   
   private int translateToIndex(String label) {

@@ -8,12 +8,6 @@ import java.util.NoSuchElementException;
  * Each function frames houses values of a function's local variables
  * and arguments
  * 
- * When creating a new frame/calling a function,
- * it's essential that registerFrame() is called
- * AFTER arguments have been placed on the stack
- * 
- * When exiting a frame/returing to a caller,
- * it's essential that exitFrame() is called 
  * @author Jose
  *
  */
@@ -21,13 +15,10 @@ public interface FunctionStack {
 
   /**
    * Registers a new frame on to the function stack
+   * 
+   * @param insIndex - the current instruction index
    */
-  public void registerFrame();
-  
-  /**
-   * Exits the current frame
-   */
-  public void exitFrame();
+  public void changeFPBy(long insIndex);
   
   /**
    * Retrieves a value from the current frame at a given offset
@@ -51,6 +42,12 @@ public interface FunctionStack {
    * @return the total values stored onto the stack
    */
   public long getTotalElements();
+  
+  /**
+   * Returns the current frame pointer
+   * @return the current frame pointer
+   */
+  public int getCurrentFP();
   
   /**
    * Gets the number of frames registered on the stack

@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import jg.cs.common.BuiltInFunctions;
 import jg.cs.common.FunctionLike;
@@ -36,6 +37,7 @@ import jg.cs.compile.nodes.atoms.NullValue;
 import jg.cs.compile.nodes.atoms.Str;
 import jg.cs.compile.nodes.atoms.Typ;
 import jg.cs.inter.instruction.DataLabelInstr;
+import jg.cs.inter.instruction.IncfpInstr;
 import jg.cs.inter.instruction.Instr;
 import jg.cs.inter.instruction.JumpInstr;
 import jg.cs.inter.instruction.JumpInstr.Jump;
@@ -211,7 +213,7 @@ public class IRCompiler {
           new LabelAndFunc(genLabel(topFunction.getKey().getName()), topFunction.getValue()));
     }
     
-    System.out.println("__TYPE CODES: "+typeCodes);
+    System.out.println("-----FMAP: \n"+fmap.entrySet().stream().map(x -> x.toString()).collect(Collectors.joining("\n")));
     
     //go over struct declarations and put their type codes
     for (Entry<Type, DataDeclaration> dec : program.getStructDecs().entrySet()) {
@@ -230,7 +232,7 @@ public class IRCompiler {
     //Compile top-level functions
     for (FunctionLike funcs : program.getFileFunctions().values()) {
       if (funcs instanceof FunctDefExpr) {
-        InstrAndType s = compileFuncDef((FunctDefExpr) funcs, new ArrayList<>(), fwrap(fmap), 0);
+        InstrAndType s = compileFuncDef((FunctDefExpr) funcs, new ArrayList<>(), fwrap(fmap), 2);
         
         /*
          * TODO: Remove these after debugging. These are just helpful for separating function code visually
@@ -296,7 +298,7 @@ public class IRCompiler {
       return compileIden((Identifier) expr, indexMaps, fMaps, stackIndex);
     }
     else if (expr instanceof FunctDefExpr) {
-      return compileFuncDef((FunctDefExpr) expr, indexMaps, fMaps, 0);
+      return compileFuncDef((FunctDefExpr) expr, indexMaps, fMaps, 2);
     }
     else if (expr instanceof LetExpr) {
       return compileLet((LetExpr) expr, indexMaps, fMaps, stackIndex);
@@ -384,7 +386,7 @@ public class IRCompiler {
       long stackIndex) {
     TypeAndIndex varTypeAndIndex = find(expr.getActualValue(), indexMaps);
         
-    return new InstrAndType(Type.BOOLEAN, 
+    return new InstrAndType(varTypeAndIndex.type, 
         new LoadInstr<Long>(LoadType.MLOAD, varTypeAndIndex.index, expr.getLeadLnNumber(), expr.getLeadColNumber()));
     
     /*
@@ -415,7 +417,11 @@ public class IRCompiler {
     ArrayList<Instr> instrs = new ArrayList<Instr>();
     
     //add function label
-    instrs.add(new LabelInstr(genLabel(expr.getFuncName().getImage()), expr.getLeadLnNumber(), expr.getLeadColNumber()));
+    instrs.add(new LabelInstr(
+        find(expr.getIdentity().getSignature(), fMaps).label, 
+        expr.getParameterCount(), 
+        expr.getLeadLnNumber(), 
+        expr.getLeadColNumber()));
     
     //local variable map
     HashMap<String, TypeAndIndex> localEnv = new HashMap<String, TypeAndIndex>();
@@ -440,7 +446,7 @@ public class IRCompiler {
         String skipLabel = genLabel("skipNested");     
         instrs.add(new JumpInstr(Jump.JMP, skipLabel, nestedFunc.getLeadLnNumber(), nestedFunc.getLeadColNumber()));
         
-        InstrAndType result = compileFuncDef(nestedFunc, concatToFront(localEnv, indexMaps), fconcat(nested, fMaps), 0);
+        InstrAndType result = compileFuncDef(nestedFunc, concatToFront(localEnv, indexMaps), fconcat(nested, fMaps), 2);
         instrs.addAll(result.instrs);
         
         LabelAndFunc labelAndFunc = new LabelAndFunc(genLabel(nestedFunc.getFuncName().getImage()), nestedFunc);
@@ -461,6 +467,50 @@ public class IRCompiler {
     return new InstrAndType(instrs, expr.getType());
   }
   
+  private InstrAndType compileFuncCall(FunctionCall expr, 
+      List<Map<String, TypeAndIndex>> indexMaps, 
+      List<Map<FunctionSignature, LabelAndFunc>> fMaps,
+      long stackIndex) {
+    System.out.println("---FUNC CALL: "+expr+" | "+stackIndex);
+    
+    // TODO Auto-generated method stub
+    ArrayList<Instr> instrs = new ArrayList<Instr>();
+    
+    int startIndex = 0;
+    
+    Type [] argTypes = new Type[expr.getArguments().size()];
+    for (Expr arg : expr.getArguments()) {
+      InstrAndType argResult = compileExpr(arg, indexMaps, fMaps, stackIndex);
+      instrs.addAll(argResult.instrs);
+      instrs.add(new StoreInstr(stackIndex + 2, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
+      argTypes[startIndex] = argResult.type;
+      startIndex++;
+      stackIndex++;
+    }
+    
+    FunctionSignature targetFunction = new FunctionSignature(expr.getFuncName().getImage(), argTypes);
+    
+    LabelAndFunc found = find(targetFunction, fMaps);
+    
+    System.out.println("--TARGET:"+targetFunction + " ln: "+expr.getLeadLnNumber());
+    System.out.println("   -> SI "+stackIndex);
+    System.out.println("   -> TARGET LABEL: "+found.label);
+    
+    instrs.add(new NoArgInstr(NAInstr.SAVECALL, -1, -1));
+    instrs.add(new IncfpInstr(expr.getArgCount(), -1, -1));
+
+    
+    if (BuiltInFunctions.BUILT_IN_MAP.containsKey(targetFunction)) {
+      instrs.add(new JumpInstr(Jump.CALLI, found.label, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
+    }
+    else {
+      instrs.add(new JumpInstr(Jump.CALL, found.label, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
+    }
+    instrs.add(new IncfpInstr(-expr.getArgCount(), -1, -1));
+    
+    return new InstrAndType(instrs, found.getFunction().getIdentity().getReturnType());
+  }
+
   private InstrAndType compileLet(LetExpr expr, 
       List<Map<String, TypeAndIndex>> indexMaps, 
       List<Map<FunctionSignature, LabelAndFunc>> fMaps,
@@ -627,42 +677,6 @@ public class IRCompiler {
     return new InstrAndType(instrs, newValueResult.type);
   }
 
-  private InstrAndType compileFuncCall(FunctionCall expr, 
-      List<Map<String, TypeAndIndex>> indexMaps, 
-      List<Map<FunctionSignature, LabelAndFunc>> fMaps,
-      long stackIndex) {
-    // TODO Auto-generated method stub
-    ArrayList<Instr> instrs = new ArrayList<Instr>();
-    
-    int startIndex = 0;
-    
-    Type [] argTypes = new Type[expr.getArguments().size()];
-    for (Expr arg : expr.getArguments()) {
-      InstrAndType argResult = compileExpr(arg, indexMaps, fMaps, stackIndex);
-      instrs.addAll(argResult.instrs);
-      instrs.add(new StoreInstr(stackIndex, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
-      argTypes[startIndex] = argResult.type;
-      System.out.println("RESL "+argResult.type+" | "+arg+" | "+indexMaps);
-      startIndex++;
-      stackIndex++;
-    }
-    
-    FunctionSignature targetFunction = new FunctionSignature(expr.getFuncName().getImage(), argTypes);
-    
-    LabelAndFunc found = find(targetFunction, fMaps);
-    
-    System.out.println(targetFunction + " ln: "+expr.getLeadLnNumber());
-    
-    if (BuiltInFunctions.BUILT_IN_MAP.containsKey(targetFunction)) {
-      instrs.add(new JumpInstr(Jump.CALLI, found.label, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
-    }
-    else {
-      instrs.add(new JumpInstr(Jump.CALL, found.label, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
-    }
-    
-    return new InstrAndType(instrs, found.getFunction().getIdentity().getReturnType());
-  }
-  
   private InstrAndType compileWhile(WhileExpr expr, 
       List<Map<String, TypeAndIndex>> indexMaps, 
       List<Map<FunctionSignature, LabelAndFunc>> fMaps,

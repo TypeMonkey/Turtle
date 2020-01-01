@@ -77,7 +77,16 @@ public class NoArgInstr extends Instr{
     /**
      * Returns to caller's frame
      */
-    RET;
+    RET,
+    
+    /**
+     * Saves the current frame pointer on stack
+     * and sets a new reference point for offset,
+     * 
+     * And also sets the current instruction pointer
+     * onto the current stack frame
+     */
+    SAVECALL;
   }
 
   private final NAInstr instr;
