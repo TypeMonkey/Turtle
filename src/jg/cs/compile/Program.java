@@ -12,7 +12,6 @@ import jg.cs.compile.nodes.Expr;
 /**
  * Represents a structurally valid Turtle program
  * @author Jose Guaro
- *
  */
 public class Program {
 

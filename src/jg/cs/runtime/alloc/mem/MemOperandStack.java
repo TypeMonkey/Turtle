@@ -2,6 +2,7 @@ package jg.cs.runtime.alloc.mem;
 
 import java.util.NoSuchElementException;
 import java.util.Stack;
+import java.util.stream.Collectors;
 
 import jg.cs.runtime.Executor;
 import jg.cs.runtime.alloc.OperandStack;
@@ -37,6 +38,6 @@ public class MemOperandStack implements OperandStack{
   
   @Override
   public String toString() {
-    return "=====OPERAND STACK=====\n"+stack;
+    return "=====OPERAND STACK=====\n["+stack.stream().map(x -> (x >>> 1)+"").collect(Collectors.joining(","))+"]";
   }
 }

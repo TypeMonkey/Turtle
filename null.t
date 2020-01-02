@@ -1,11 +1,12 @@
 (
-  def f (a : int) (b : int) : void
-  
-    a
-    b  
+  def f (a : int) (b : string) : string
+  (
+    if (= a 3)
+    b
+    (f (- a 1) (println (+ b 'add')))
+  )
 )
 
-(let ((a:int 10) (b:int 5) ) 
-  (f a b)
-  (println 'wat')
+(let ((b:int 5)) 
+  (println (f b (println 'mead')) )
 )

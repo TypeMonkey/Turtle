@@ -11,11 +11,11 @@ public interface HeapAllocator {
   
   /**
    * Allocates a struct on to the heap
-   * @param stack - the FunctionStack to retreieve values from
+   * @param stack - the OperandStack to retreieve values from
    * @param memberTypeCodes - the type codes of struct members
    * @return the starting address of the structure
    */
-  public long allocate(FunctionStack stack, int [] memberTypeCodes) throws OutOfMemoryError;
+  public long allocate(OperandStack stack, int [] memberTypeCodes) throws OutOfMemoryError;
   
   /**
    * Allocates a string on to the heap
@@ -25,6 +25,13 @@ public interface HeapAllocator {
    * @param string - String to store in the heap
    */
   public long allocate(String string) throws OutOfMemoryError;
+    
+  /**
+   * Retrieves and decodes the string located at the provided address
+   * @param address - the address of the string
+   * @return the decoded ASCII String
+   */
+  public String getString(long address);
   
   /**
    * Retrieves the value of struct's member

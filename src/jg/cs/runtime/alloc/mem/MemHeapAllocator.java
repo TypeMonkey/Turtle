@@ -2,11 +2,13 @@ package jg.cs.runtime.alloc.mem;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import jg.cs.runtime.Executor;
 import jg.cs.runtime.alloc.FunctionStack;
 import jg.cs.runtime.alloc.HeapAllocator;
+import jg.cs.runtime.alloc.OperandStack;
 
 public class MemHeapAllocator implements HeapAllocator{
   
@@ -23,7 +25,7 @@ public class MemHeapAllocator implements HeapAllocator{
   }
   
   @Override
-  public long allocate(FunctionStack stack, int[] memberTypeCodes) {
+  public long allocate(OperandStack stack, int[] memberTypeCodes) {
     // TODO Auto-generated method stub
     int totalSizeNeeded = currentIndex + 2 + memberTypeCodes.length;
     if (totalSizeNeeded > heap.length - 1) {
@@ -47,11 +49,9 @@ public class MemHeapAllocator implements HeapAllocator{
     /*
      * top most value is bottom most member 
      */   
-    int offset = 0;
     for (int i = currentIndex + memberTypeCodes.length; i > 0; i--) {
-      heap[currentIndex] = stack.retrieveAtOffset(offset);
+      heap[currentIndex] = stack.popOperand();
       currentIndex++;
-      offset++;
     }
     
     usedSpace += totalSizeNeeded;
@@ -72,9 +72,16 @@ public class MemHeapAllocator implements HeapAllocator{
      * SIZE = charcater amount in ASCII
      * bytes....
      */
-    byte [] encoded = string.getBytes(StandardCharsets.US_ASCII);
     
-    if (currentIndex + Math.floor(encoded.length / 8) + 2  > heap.length - 1) {
+    byte [] encoded = string.getBytes(StandardCharsets.US_ASCII);
+    long size = encoded.length;
+    encoded = ( (encoded.length % Long.BYTES) == 0) ? 
+                       encoded : 
+                         Arrays.copyOf(encoded, encoded.length + (Long.BYTES - encoded.length));
+    
+    
+    
+    if (currentIndex + (encoded.length / Long.BYTES) + 2  > heap.length - 1) {
       throw new OutOfMemoryError("Need "+(currentIndex + Math.floor(encoded.length / 8))+" bytes!, USED: "+usedSpace+" bytes");
     }
     
@@ -83,7 +90,7 @@ public class MemHeapAllocator implements HeapAllocator{
     long startAddress = currentIndex;
     
     heap[currentIndex] = STRING_GC_MASK;
-    heap[currentIndex + 1] = (encoded.length << 1) + 1;
+    heap[currentIndex + 1] = (size << 1) + 1;
     
     System.out.println("---encoded size: "+heap[currentIndex + 1]);
     
@@ -91,13 +98,8 @@ public class MemHeapAllocator implements HeapAllocator{
     
     System.out.println("  length index: "+currentIndex);
     
-    int padding = (8 % encoded.length) != 0 ? (8 - encoded.length) : 0;    
-    encoded = Arrays.copyOf(encoded, encoded.length + padding);
-    System.out.println("- size: "+encoded.length);
-    
-    
-    for (int i = 0; i < encoded.length; i += 8) {
-      heap[currentIndex] = ByteBuffer.wrap(Arrays.copyOfRange(encoded, i, i + 8)).getLong();  
+    for (int i = 0; i < encoded.length; i += Long.BYTES) {
+      heap[currentIndex] = ByteBuffer.wrap(Arrays.copyOfRange(encoded, i, i + Long.BYTES)).getLong();  
       System.out.println("---BYTES: "+ByteBuffer.wrap(Arrays.copyOfRange(encoded, i, i + 8)).getLong());
       System.out.println("   -> RED: "+heap[currentIndex]+" | "+currentIndex+" | "+i);
       currentIndex++;
@@ -114,6 +116,39 @@ public class MemHeapAllocator implements HeapAllocator{
     return (startAddress << 1);
   }
 
+  @Override
+  public String getString(long address) {
+    System.out.println("RETREIVING STRING------- "+(address >>> 1));
+    System.out.println(getHeapRepresentation());
+    
+    long size = get(address, 1) >>> 1;  //size is encoded, must be decoded
+
+    System.out.println("  ---STRING ADDR: "+(address >>> 1)+" | SIZE: "+size);
+      
+
+    ArrayList<Byte> bytes = new ArrayList<>();
+    
+    int segments = (int) Math.ceil((double)size / Long.BYTES);
+    System.out.println("  ---calculated segs: "+segments+" | true value: "+((double) size / 8));
+    for(int i = 0; i < segments; i++) {
+      long segment = get(address, i + 2);
+      System.out.println("---GOT "+segment);
+      byte[] buffer = ByteBuffer.allocate(Long.BYTES).putLong(segment).array();
+      for (byte b : buffer) {
+        bytes.add(b);
+      }
+      System.out.println("    -------------BYTES SO FAR |"+bytes+"|");
+    }
+    
+    byte [] conv = new byte[bytes.size()];
+    for (int i = 0; i < conv.length; i++) {
+      conv[i] = bytes.get(i);
+    }
+    
+    System.out.println("---raw bytes "+bytes.size()+" | "+bytes);
+    return new String(conv, 0, (int) size, StandardCharsets.US_ASCII);
+  }
+  
   @Override
   public long get(long address, long offset) {
     System.out.println(" ---HEAP GETTING AT IREAL INDEX: "+((int) ( (address>>>1) + offset)));

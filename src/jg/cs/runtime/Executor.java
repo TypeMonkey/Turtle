@@ -3,8 +3,6 @@ package jg.cs.runtime;
 import java.util.HashMap;
 import java.util.Map;
 
-import jg.cs.common.types.Type;
-import jg.cs.compile.nodes.RetrieveExpr;
 import jg.cs.inter.RunnableUnit;
 import jg.cs.inter.instruction.DataLabelInstr;
 import jg.cs.inter.instruction.IncfpInstr;
@@ -18,7 +16,6 @@ import jg.cs.inter.instruction.MutateInstr;
 import jg.cs.inter.instruction.NoArgInstr;
 import jg.cs.inter.instruction.NoArgInstr.NAInstr;
 import jg.cs.inter.instruction.RetrieveInstr;
-import jg.cs.inter.instruction.SaveFpInstr;
 import jg.cs.inter.instruction.StoreInstr;
 import jg.cs.runtime.alloc.FunctionStack;
 import jg.cs.runtime.alloc.HeapAllocator;
@@ -112,14 +109,14 @@ public class Executor {
       if (program.getInstructions()[instructionIndex] != null) {
         execInstr(program.getInstructions()[instructionIndex]);
         
-        System.out.println("!!!!!! STACK \n"+fstack);
-        System.out.println(operandStack);
+        //System.out.println("!!!!!! STACK \n"+fstack);
+        //System.out.println(operandStack);
       }
     }
   }
   
   private void execInstr(Instr instr) {
-    System.out.println("---CURRENT["+instructionIndex+"]: "+instr);
+    //System.out.println("---CURRENT["+instructionIndex+"]: "+instr);
     if (instr instanceof DataLabelInstr) {
       execDataLabel((DataLabelInstr) instr);
     }
@@ -151,10 +148,6 @@ public class Executor {
       IncfpInstr fpChangeInstr = (IncfpInstr) instr;
       fstack.changeFPBy(fpChangeInstr.getAmount());
     }
-    else if (instr instanceof SaveFpInstr) {
-      SaveFpInstr fpChangeInstr = (SaveFpInstr) instr;
-      fstack.saveAtOffset(fpChangeInstr.getOffset() ,fstack.getCurrentFP());
-    }
   }
   
   private void execDataLabel(DataLabelInstr instr) {
@@ -163,10 +156,11 @@ public class Executor {
      * 
      * TOP most value on stack = bottom-most member declaration
      */   
-    operandStack.pushOperand(heapAllocator.allocate(fstack, instr.getTypeCode()));
+    operandStack.pushOperand(heapAllocator.allocate(operandStack, instr.getTypeCode()));
   }
   
   private void execJump(JumpInstr instr) {
+    //System.out.println(" CALL/JUMP INSTR: "+instr);
     if (instr.getJump() == Jump.JMP) {
       instructionIndex = translateToIndex(instr.getTargetLabel());
     }
@@ -179,10 +173,9 @@ public class Executor {
           translateToIndex(instr.getTargetLabel()) : instructionIndex;
     }
     else if (instr.getJump() == Jump.CALL) {
-      System.out.println(" CALL INSTR: "+instr);
       instructionIndex = translateToIndex(instr.getTargetLabel()) - 1;
-      System.out.println("---NEW INDEX "+instructionIndex);
     }
+    //System.out.println("---NEW INDEX "+instructionIndex);
   }
   
   private void execLoad(LoadInstr<?> instr) {
@@ -194,11 +187,21 @@ public class Executor {
       operandStack.pushOperand(constant);
     }
     else if (instr.getType() == LoadType.SCLOAD) {
-      operandStack.pushOperand(heapAllocator.allocate(instr.getValue().toString()));
+      long addr = heapAllocator.allocate(instr.getValue().toString());
+      
+      System.out.println(" ---> LOADING CONS STRING: "+(addr >>> 1));
+      
+      System.out.println(" ---just in case: \n"+heapAllocator.getHeapRepresentation());
+      
+      operandStack.pushOperand(addr);
     }
     else if (instr.getType() == LoadType.MLOAD) {
       long offset = ((LoadInstr<Long>) instr).getValue();
       long value = fstack.retrieveAtOffset(offset);
+      
+      //System.out.println("----> LOADING FROM STACK: "+(value >>> 1));
+      
+      //System.out.println(" ---just in case: \n"+heapAllocator.getHeapRepresentation());
       
       operandStack.pushOperand(value);
     }
@@ -218,6 +221,8 @@ public class Executor {
       long left = operandStack.popOperand();
       long right = operandStack.popOperand();
       
+      //System.out.println(" --- EQUAL??? l = "+(left >>> 1)+"  ,  r = "+(right >>> 1));
+      
       operandStack.pushOperand(left == right ? TRUE : FALSE);
     }
     else if (instr.getInstr() == NAInstr.IADD) {
@@ -227,6 +232,29 @@ public class Executor {
       long result = left + right;
       
       operandStack.pushOperand(result);
+    }
+    else if (instr.getInstr() == NAInstr.SADD) {
+      System.out.println("---CURRENT["+instructionIndex+"]: "+instr);
+
+      System.out.println("---SADD OSTACK: \n"+operandStack);
+      long right = operandStack.popOperand(); 
+      long left = operandStack.popOperand();
+      
+      System.out.println("---> SADD| LEFT ADDR: "+(left >>> 1)+"  ,  RIGHT ADDR:  "+(right >>> 1));
+      
+      String leftStr = heapAllocator.getString(left);
+      String rightStr = heapAllocator.getString(right);
+      
+      System.out.println(" SADD: Left: '"+leftStr+"'");
+      System.out.println(" SADD: Right: '"+rightStr+"'");
+
+      
+      System.out.println("==================================SADD RESULT: "+leftStr+rightStr);
+
+      long resultAddress = heapAllocator.allocate(leftStr + rightStr);
+      operandStack.pushOperand(resultAddress);
+      
+      System.out.println("====================================REREAD: "+heapAllocator.getString(resultAddress));
     }
     else if (instr.getInstr() == NAInstr.IGREAT) {
       long left = operandStack.popOperand();
@@ -259,10 +287,14 @@ public class Executor {
       operandStack.pushOperand(left != right ? TRUE : FALSE);
     }
     else if (instr.getInstr() == NAInstr.ISUB) {
-      long left = operandStack.popOperand() - 1; //decode left
+      System.out.println("---ISUB OSTACK: \n"+operandStack);
+
       long right = operandStack.popOperand() - 1; //decode right
+      long left = operandStack.popOperand() - 1; //decode left
       
-      long result = left - right + 1;
+      long result = (left - right) + 1;
+      
+      System.out.println("----ISUB: LEFT="+(left >>> 1)+" | RIGHT="+(right >>> 1)+" , res="+(result >>> 1));
       
       operandStack.pushOperand(result);
     }
@@ -278,19 +310,31 @@ public class Executor {
       operandStack.pushOperand(result);
     }
     else if (instr.getInstr() == NAInstr.RET) {
-      instructionIndex = (int) fstack.retrieveAtOffset(1);
-      System.out.println(" INIT INSTR INDEX CHANGE: "+instructionIndex);
+      instructionIndex = (int) fstack.retrieveAtOffset(0) - 1;
+      //System.out.println(" INIT INSTR INDEX CHANGE: "+instructionIndex);
       /* The reason we do -1 is because the interpreter loop will
        * Skip over changes to instructionIndex as it is changed DURING the loop.
        * By doing -1, it'll increment it by 1 in the next loop and execute our desired instruction
        */
-      instructionIndex--;
-      System.out.println("---RET: MAX: "+(program.getInstructions().length - 1) + " | change: "+instructionIndex);
+      
+      long callResult = operandStack.popOperand();
+      long callerFp = operandStack.popOperand();
+      
+      
+      fstack.setFP(callerFp);     
+      
+      //System.out.println("---PUSHING CALL RESULT: "+callerFp);
+      operandStack.pushOperand(callResult);
+      
+      //System.out.println("---RET: MAX: "+(program.getInstructions().length - 1) + " | change: "+instructionIndex);
     }
-    else if (instr.getInstr() == NAInstr.SAVECALL) {      
-      //+1 to skip over the current instruction
-      //+2 to skip over the call instruction after this one
-      fstack.saveAtOffset(1, instructionIndex + 3);
+    else if (instr.getInstr() == NAInstr.PUSHFP) {      
+      //System.out.println("  SAVING FP="+fstack.getCurrentFP()+" on OPSTACK");
+      operandStack.pushOperand(fstack.getCurrentFP());
+    }
+    else if (instr.getInstr() == NAInstr.SAVEINS) {
+      //System.out.println("---SAVING INSTRUCITON INDEX: cur="+instructionIndex+" , modi="+(instructionIndex + 2));
+      fstack.saveAtOffset(0, instructionIndex+2);
     }
   }
   
@@ -311,7 +355,7 @@ public class Executor {
   
   private void execBuiltInFunc(LabelInstr labelInstr) {
     if (labelInstr.isBuiltin()) {
-      System.out.println("----CALLING BUILT IN");
+      System.out.println("----CALLING BUILT IN "+operandStack);
       BuiltInExecutor.executeBuiltIn(labelInstr.getRiCode(), fstack, operandStack, heapAllocator);
     }
     //if not a built in label, don't do anything

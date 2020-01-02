@@ -15,13 +15,21 @@ public class MemFunctionStack implements FunctionStack{
   
   public MemFunctionStack() {
     fstack = new long[10];
+    index = 0;
   }
 
   @Override
   public void changeFPBy(long insIndex) {
-    System.out.println("  ---> FP THEN: "+index);
+    //System.out.println("  ---> FP THEN: "+index);
     index += insIndex;
-    System.out.println("  ---> FP NOW: "+index);
+    //System.out.println("  ---> FP NOW: "+index);
+  }
+  
+  @Override
+  public void setFP(long fp) {
+    //System.out.println("  ---> FP SET THEN: "+index);
+    index = (int) fp;
+    //System.out.println("  ---> FP SET NOW: "+index);
   }
   
   private void growStack() {
@@ -30,7 +38,7 @@ public class MemFunctionStack implements FunctionStack{
 
   @Override
   public long retrieveAtOffset(long offset) throws IllegalArgumentException {
-    System.out.println(" --< FSTACK: RETREIVING AT: "+(index + offset));
+    //System.out.println(" --< FSTACK: RETREIVING AT: "+(index + offset));
     return fstack[(int) (index + offset)];
   }
 
@@ -41,7 +49,7 @@ public class MemFunctionStack implements FunctionStack{
       saveAtOffset(offset, value);
     }
     else {
-      System.out.println(" --< FSTACK: SAVING AT AT: "+(index + offset)+" | "+value);
+      //System.out.println(" --< FSTACK: SAVING AT AT: "+(index + offset)+" | "+value);
       fstack[(int) (index + offset)] = value;
     }
   }

@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,7 +43,7 @@ public class Main {
    */
   public static void main(String[] args) {
     args = new String[1];
-    args[0] = "str.t";
+    args[0] = "null.t";
     
     if (args.length == 1 && getFileExtension(args[0]).equals("t")) {
       File targetFile = new File(args[0]);
@@ -93,20 +94,31 @@ public class Main {
         IRCompiler compiler = new IRCompiler(program);
         RunnableUnit result = compiler.compile();
         
-        int i = 0;
-        for (Instr x : result.getInstructions()) {
-          if (x == null) {
-            System.out.println("  | "+i);
+        //WRITE IR TO FILE FOR DEBUG
+        File file = new File("debug.irt");
+        System.out.println("----WRITING IR TO FILE: ");
+        try {
+          PrintWriter printWriter = new PrintWriter(file);
+          int i = 0;
+          for (Instr x : result.getInstructions()) {
+            if (x == null) {
+              printWriter.println("  | "+i);
+            }
+            else {
+              printWriter.println((x.getLineNumber()+" | "+i+" "+x));
+            }
+            i++;
           }
-          else {
-            System.out.println((x.getLineNumber()+" | "+i+" "+x));
-          }
-          i++;
+          printWriter.close();
+        } catch (FileNotFoundException e1) {
+          e1.printStackTrace();
         }
+        
         
         MemFunctionStack functionStack = new MemFunctionStack();
         MemOperandStack operandStack = new MemOperandStack();
-        MemHeapAllocator heapAllocator = new MemHeapAllocator(1000);
+        MemHeapAllocator heapAllocator = new MemHeapAllocator(200);
+        
         
         Executor executor = new Executor(functionStack, 
             operandStack, heapAllocator, result);
@@ -115,13 +127,13 @@ public class Main {
         System.out.println("-------EXECUTING!!!!-------  MAX HEAP: "+heapAllocator.getMaxSpace());
         try {
           executor.execute();
-        } catch (Exception e) {
-          System.err.println("----------ERROR----------");
+        } catch (Throwable e) {
+          System.out.println("----------ERROR---------- ");
           e.printStackTrace();
           System.err.println(functionStack);
-          System.err.println(heapAllocator.getHeapRepresentation());
-          
-        }
+          System.err.println(heapAllocator.getHeapRepresentation());      
+        }       
+        
       }
       else {
         System.err.println("turtle: Provided source file is either nonexistant or unreadble!");

@@ -14,11 +14,18 @@ import java.util.NoSuchElementException;
 public interface FunctionStack {
 
   /**
-   * Registers a new frame on to the function stack
+   * Adds on to the current frame pointer
    * 
-   * @param insIndex - the current instruction index
+   * @param the amount to add by
    */
   public void changeFPBy(long insIndex);
+  
+  /**
+   * Changes the current frame pointer
+   * 
+   * @param fp - the new frame pointer
+   */
+  public void setFP(long fp);
   
   /**
    * Retrieves a value from the current frame at a given offset

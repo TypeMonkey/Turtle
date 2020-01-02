@@ -2,6 +2,7 @@ package jg.cs.inter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,7 +48,6 @@ import jg.cs.inter.instruction.LoadInstr.LoadType;
 import jg.cs.inter.instruction.MutateInstr;
 import jg.cs.inter.instruction.NoArgInstr.NAInstr;
 import jg.cs.inter.instruction.RetrieveInstr;
-import jg.cs.inter.instruction.SaveFpInstr;
 import jg.cs.inter.instruction.StoreInstr;
 import jg.cs.inter.instruction.NoArgInstr;
 
@@ -205,6 +205,7 @@ public class IRCompiler {
         typeCodes.put(topFunction.getValue().getIdentity().getReturnType(), dataCode);
         dataCode++;
       }
+      
       fmap.put(topFunction.getKey(), 
           new LabelAndFunc(genLabel(topFunction.getKey().getName()), topFunction.getValue()));
     }
@@ -239,7 +240,7 @@ public class IRCompiler {
     //Compile top-level functions
     for (FunctionLike funcs : program.getFileFunctions().values()) {
       if (funcs instanceof FunctDefExpr) {
-        InstrAndType s = compileFuncDef((FunctDefExpr) funcs, new ArrayList<>(), fwrap(fmap), 2);
+        InstrAndType s = compileFuncDef((FunctDefExpr) funcs, new ArrayList<>(), fwrap(fmap), 1);
         
         /*
          * TODO: Remove these after debugging. These are just helpful for separating function code visually
@@ -305,7 +306,7 @@ public class IRCompiler {
       return compileIden((Identifier) expr, indexMaps, fMaps, stackIndex);
     }
     else if (expr instanceof FunctDefExpr) {
-      return compileFuncDef((FunctDefExpr) expr, indexMaps, fMaps, 2);
+      return compileFuncDef((FunctDefExpr) expr, indexMaps, fMaps, 1);
     }
     else if (expr instanceof LetExpr) {
       return compileLet((LetExpr) expr, indexMaps, fMaps, stackIndex);
@@ -395,26 +396,6 @@ public class IRCompiler {
         
     return new InstrAndType(varTypeAndIndex.type, 
         new LoadInstr<Long>(LoadType.MLOAD, varTypeAndIndex.index, expr.getLeadLnNumber(), expr.getLeadColNumber()));
-    
-    /*
-    //check for the three primitives
-    if (varTypeAndIndex.getType().equals(Type.BOOLEAN)) {
-      return new InstrAndType(Type.BOOLEAN, 
-          new LoadInstr<Long>(LoadType.MLOAD, varTypeAndIndex.index, expr.getLeadLnNumber(), expr.getLeadColNumber()));
-    }
-    else if (varTypeAndIndex.getType().equals(Type.INTEGER)) {
-      return new InstrAndType(Type.INTEGER, 
-          new LoadInstr<Long>(LoadType.ILOAD, varTypeAndIndex.index, expr.getLeadLnNumber(), expr.getLeadColNumber()));
-    }
-    else if (varTypeAndIndex.getType().equals(Type.STRING)) {
-      return new InstrAndType(Type.STRING, 
-          new LoadInstr<Long>(LoadType.SLOAD, varTypeAndIndex.index, expr.getLeadLnNumber(), expr.getLeadColNumber()));
-    }
-    else {
-      return new InstrAndType(varTypeAndIndex.type, 
-          new LoadInstr<Long>(LoadType.RLOAD, varTypeAndIndex.index, expr.getLeadLnNumber(), expr.getLeadColNumber()));
-    }
-    */
   }
   
   private InstrAndType compileFuncDef(FunctDefExpr expr, 
@@ -424,26 +405,29 @@ public class IRCompiler {
     ArrayList<Instr> instrs = new ArrayList<Instr>();
     
     //add function label
-    instrs.add(new LabelInstr(
+    LabelInstr funcLabelInstr = new LabelInstr(
         find(expr.getIdentity().getSignature(), fMaps).label, 
         -1, 
         expr.getLeadLnNumber(), 
-        expr.getLeadColNumber()));
+        expr.getLeadColNumber());
+    instrs.add(funcLabelInstr);
     
     //local variable map
     HashMap<String, TypeAndIndex> localEnv = new HashMap<String, TypeAndIndex>();
     
     //assign indices to function arguments first
+    int insertIndex = instrs.size();
     for (Entry<String, IdenTypeValTuple> param : expr.getParameters().entrySet()) {
       localEnv.put(param.getKey(), new TypeAndIndex(stackIndex, param.getValue().getType()));
-      instrs.add(new StoreInstr(stackIndex, -1, -1));
+      System.out.println("---- FOR FUNC DEF: "+expr.getIdentity()+" , param "+param.getKey()+" at index "+stackIndex);
+      instrs.add(insertIndex, new StoreInstr(stackIndex, -1, -1));
       stackIndex++;
     }
     
     //map to keep track of nested functions
     HashMap<FunctionSignature, LabelAndFunc> nested = new HashMap<>();
-    LabelAndFunc thisFunc = new LabelAndFunc(genLabel(expr.getFuncName().getImage()), expr);
-    nested.put(expr.getIdentity().getSignature(), thisFunc);
+    
+    System.out.println("----> DEF LABELS: "+fconcat(nested, fMaps));
     
     //then, compile the function's body
     for (Expr bod : expr.getExpressionsExprs()) {
@@ -454,7 +438,10 @@ public class IRCompiler {
         String skipLabel = genLabel("skipNested");     
         instrs.add(new JumpInstr(Jump.JMP, skipLabel, nestedFunc.getLeadLnNumber(), nestedFunc.getLeadColNumber()));
         
-        InstrAndType result = compileFuncDef(nestedFunc, concatToFront(localEnv, indexMaps), fconcat(nested, fMaps), 2);
+        String nestedLabel = genLabel(expr.getFuncName().getImage());
+        nested.put(nestedFunc.getIdentity().getSignature(), new LabelAndFunc(nestedLabel, nestedFunc));
+        
+        InstrAndType result = compileFuncDef(nestedFunc, concatToFront(localEnv, indexMaps), fconcat(nested, fMaps), 1);
         instrs.addAll(result.instrs);
         
         LabelAndFunc labelAndFunc = new LabelAndFunc(genLabel(nestedFunc.getFuncName().getImage()), nestedFunc);
@@ -480,16 +467,20 @@ public class IRCompiler {
       List<Map<FunctionSignature, LabelAndFunc>> fMaps,
       long stackIndex) {
     System.out.println("---FUNC CALL: "+expr+" | "+stackIndex);
+    System.out.println("    LABELS? "+fMaps);
     
     // TODO Auto-generated method stub
     ArrayList<Instr> instrs = new ArrayList<Instr>();
+    
+    //push fp to operand stack
+    instrs.add(new NoArgInstr(NAInstr.PUSHFP, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
     
     int startIndex = 0;
         
     Type [] argTypes = new Type[expr.getArguments().size()];
     for (Expr arg : expr.getArguments()) {    
       //store all arguments on op stack
-      InstrAndType argResult = compileExpr(arg, indexMaps, fMaps, stackIndex + 1);
+      InstrAndType argResult = compileExpr(arg, indexMaps, fMaps, stackIndex);
       instrs.addAll(argResult.instrs);     
       argTypes[startIndex] = argResult.type;
       startIndex++;
@@ -503,12 +494,9 @@ public class IRCompiler {
     System.out.println("   -> SI "+stackIndex);
     System.out.println("   -> TARGET LABEL: "+found.label);
     
-    instrs.add(new SaveFpInstr(stackIndex, -1, -1));
-    instrs.add(new IncfpInstr(stackIndex, -1, -1));
-    instrs.add(new NoArgInstr(NAInstr.SAVECALL, -1, -1));
-    instrs.add(new JumpInstr(Jump.CALL, found.label, expr.getLeadLnNumber(), expr.getLeadLnNumber()));   
-    
-    instrs.add(new IncfpInstr(-expr.getArgCount(), -1, -1));
+    instrs.add(new IncfpInstr(stackIndex, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
+    instrs.add(new NoArgInstr(NAInstr.SAVEINS,expr.getLeadLnNumber(), expr.getLeadLnNumber()));
+    instrs.add(new JumpInstr(Jump.CALL, found.label, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
     
     System.out.println("----> CALL: "+instrs);
     return new InstrAndType(instrs, found.getFunction().getIdentity().getReturnType());
@@ -547,7 +535,7 @@ public class IRCompiler {
         String skipLabel = genLabel("skipNested");     
         instrs.add(new JumpInstr(Jump.JMP, skipLabel, nestedFunc.getLeadLnNumber(), nestedFunc.getLeadColNumber()));
         
-        resultType = compileFuncDef(nestedFunc, concatToFront(localEnv, indexMaps), fconcat(nested, fMaps), 0);
+        resultType = compileFuncDef(nestedFunc, concatToFront(localEnv, indexMaps), fconcat(nested, fMaps), 1);
         instrs.addAll(resultType.instrs);
         
         LabelAndFunc labelAndFunc = new LabelAndFunc(genLabel(nestedFunc.getFuncName().getImage()), nestedFunc);
@@ -707,7 +695,7 @@ public class IRCompiler {
         String skipLabel = genLabel("skipNested");     
         instrs.add(new JumpInstr(Jump.JMP, skipLabel, nestedFunc.getLeadLnNumber(), nestedFunc.getLeadColNumber()));
         
-        result = compileFuncDef(nestedFunc, indexMaps, fconcat(nested, fMaps), 0);
+        result = compileFuncDef(nestedFunc, indexMaps, fconcat(nested, fMaps), 1);
         instrs.addAll(result.instrs);
         
         LabelAndFunc labelAndFunc = new LabelAndFunc(genLabel(nestedFunc.getFuncName().getImage()), nestedFunc);

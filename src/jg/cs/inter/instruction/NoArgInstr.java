@@ -86,7 +86,12 @@ public class NoArgInstr extends Instr{
      * And also sets the current instruction pointer
      * onto the current stack frame
      */
-    SAVECALL;
+    PUSHFP,
+    
+    /**
+     * Saves the current instruction index 
+     */
+    SAVEINS;
   }
 
   private final NAInstr instr;
