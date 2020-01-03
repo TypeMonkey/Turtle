@@ -2,11 +2,13 @@ package jg.cs.compile;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import jg.cs.common.BuiltInFunctions;
 import jg.cs.common.FunctionLike;
@@ -52,8 +54,25 @@ public class TypeChecker {
     
     ArrayList<Map<FunctionSignature, FunctionLike>> fenv = new ArrayList<>();
     fenv.add(BuiltInFunctions.BUILT_IN_MAP);
-    fenv.add(program.getFileFunctions());
     
+    HashMap<FunctionSignature, FunctionLike> topLevels = new HashMap<>();
+    for (Entry<FunctionSignature, FunctionLike> entry : program.getFileFunctions().entrySet()) {
+      Expr expr = (Expr) entry.getValue();
+      if (topLevels.containsKey(entry.getKey())) {
+        throw new DuplicateFunctionException(expr.getLeadToken(), entry.getKey(), program.getFileName());
+      }
+      
+      topLevels.put(entry.getKey(), entry.getValue());
+    }
+    
+    fenv.add(topLevels);
+    
+    for (Entry<FunctionSignature, FunctionLike> entry : program.getFileFunctions().entrySet()) {
+      checkExpr((Expr) entry.getValue(), new ArrayList<>(), fenv);
+    }
+    
+    
+    System.out.println("---ENTERINMG TOP LEVEL EXPRS: "+fenv);
     for (Expr component : program.getExprList()) {
       latest = checkExpr(component, new ArrayList<>(), fenv);
     }   
@@ -225,7 +244,10 @@ public class TypeChecker {
       List<Map<String, IdenTypeValTuple>> others, 
       List<Map<FunctionSignature, FunctionLike>> fenv) {
     
-    //System.out.println("****** FUN CALL "+call);
+    System.out.println(" ---> CALL TC: "+call.getFuncName()+" | CALLER: "+call.getArguments());
+    System.out.println("     ORG: "+call+"   "+call.getLeadLnNumber());
+    System.out.println("----FMAPS: "+fenv);
+    
     Type [] argTypes = new Type[call.getArgCount()];
     int i = 0;
     for(Expr argument : call.getArguments()) {
@@ -236,7 +258,8 @@ public class TypeChecker {
     
     FunctionSignature signature = new FunctionSignature(
         call.getFuncName().getImage(), 
-        argTypes);
+        argTypes);  
+    
     
     for (Map<FunctionSignature, FunctionLike> fmap : fenv) {
       if (fmap.containsKey(signature)) {
@@ -249,11 +272,14 @@ public class TypeChecker {
     
     //if function isn't found, then check built ins
     if (BuiltInFunctions.BUILT_IN_MAP.containsKey(signature)) {
+      System.out.println("    ---> CALL TBC: "+signature+" | CALLER: "+call);
       return BuiltInFunctions.BUILT_IN_MAP.get(signature).getIdentity().getReturnType();
     }
     
     //System.out.println("FINDING: "+signature);
     //System.out.println("  MAPS: "+fenv);
+    
+    System.out.println(" --- unfound function: "+signature+"  || "+call.getLeadLnNumber());
     throw new UnresolvableComponentException(signature, 
         call.getLeadToken(), 
         program.getFileName());
@@ -343,6 +369,11 @@ public class TypeChecker {
       if (statement instanceof FunctDefExpr) {
         FunctDefExpr functDefExpr = (FunctDefExpr) statement;
         latestType = checkFuncDef(functDefExpr, concatToFront(localEnv, others), fconcatToFront(localFuncMap, fenv));
+        
+        if (findFunction(functDefExpr.getIdentity().getSignature(), fenv) != null) {
+          throw new DuplicateFunctionException(functDefExpr.getLeadToken(), functDefExpr.getIdentity().getSignature(), program.getFileName());
+        }
+        
         localFuncMap.put(functDefExpr.getIdentity().getSignature(), functDefExpr);
       }
       else {
@@ -358,10 +389,6 @@ public class TypeChecker {
       List<Map<String, IdenTypeValTuple>> others, 
       List<Map<FunctionSignature, FunctionLike>> fenv) {
     
-    if (findFunction(expr.getIdentity().getSignature(), fenv) != null) {
-      throw new DuplicateFunctionException(expr.getLeadToken(), expr.getIdentity().getSignature(), program.getFileName());
-    }
-    
     LinkedHashMap<String, IdenTypeValTuple> localEnv = new LinkedHashMap<>();
    
     //load all parameters variables. At each parameter, evaluate the type
@@ -373,12 +400,22 @@ public class TypeChecker {
     
     //now, check all statements   
     LinkedHashMap<FunctionSignature, FunctionLike> localFuncMap = new LinkedHashMap<>();
+    localFuncMap.put(expr.getIdentity().getSignature(), expr);
+    
+    System.out.println("  DEF: "+expr.getIdentity());
+    System.out.println("      LOC: "+expr.getLeadLnNumber());
+    System.out.println("      FMAPS: "+localFuncMap);
     
     Type lastType = Type.VOID; //in case the function is empty
         
     for(Expr statement : expr.getExpressionsExprs()) {
       if (statement instanceof FunctDefExpr) {
         FunctDefExpr latestFuncDef = (FunctDefExpr) statement;
+        
+        if (findFunction(latestFuncDef.getIdentity().getSignature(), fenv) != null) {
+          throw new DuplicateFunctionException(latestFuncDef.getLeadToken(), latestFuncDef.getIdentity().getSignature(), program.getFileName());
+        }
+        
         localFuncMap.put(latestFuncDef.getIdentity().getSignature(), latestFuncDef);
         lastType = checkFuncDef(latestFuncDef, concatToFront(localEnv, others), fconcatToFront(localFuncMap, fenv));
       }

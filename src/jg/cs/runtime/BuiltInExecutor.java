@@ -16,6 +16,8 @@ public class BuiltInExecutor {
     BuiltInFunctions function = BuiltInFunctions.values()[riCode];
 
     long [] values = gatherArguments(opStack, function.getIdentity().getSignature().getParameterTypes().length);
+    
+    /*
     System.out.print("ARGS: [");
     for (long l : values) {
       System.out.print((l >>> 1)+", ");
@@ -23,6 +25,8 @@ public class BuiltInExecutor {
     System.out.print("]\n");
     
     System.out.println(stack);
+    System.out.println(heap.getHeapRepresentation());
+    */
     
     if (function == BuiltInFunctions.INPUT) {
       Scanner scanner = new Scanner(System.in);
@@ -30,11 +34,11 @@ public class BuiltInExecutor {
       opStack.pushOperand(heap.allocate(input));
     }
     else if (function == BuiltInFunctions.PRINT) {
-      System.out.print("<<<<<<<<<<"+heap.getString(values[0])+">>>>>>>>>>>>>");
+      System.out.print(heap.getString(values[0]));
       opStack.pushOperand(values[0]);
     }
     else if (function == BuiltInFunctions.PRINTLN) {
-      System.out.println("<<<<<<<<<<"+heap.getString(values[0])+">>>>>>>>>>");
+      System.out.println(heap.getString(values[0]));
       opStack.pushOperand(values[0]);
     }
     else if (function == BuiltInFunctions.INC) {            
@@ -47,7 +51,7 @@ public class BuiltInExecutor {
       opStack.pushOperand(heap.get(values[0], 1));
     }
     else if (function == BuiltInFunctions.TO_STR_I) {
-      opStack.pushOperand((Long.parseLong(heap.getString(values[0])) << 1) + 1);
+      opStack.pushOperand(heap.allocate((Long.toString(values[0] >>> 1))));
     }
     else if (function == BuiltInFunctions.TO_STR_B) {
       opStack.pushOperand(values[0] == Executor.TRUE ? heap.allocate("true") : heap.allocate("false"));
@@ -57,7 +61,7 @@ public class BuiltInExecutor {
   private static long[] gatherArguments(OperandStack stack, int size) {
     long [] args = new long[size];
     
-    System.out.println("---ON STADCK BUILT IN: "+stack);
+    //System.out.println("---ON STADCK BUILT IN: "+stack);
     for (int i = args.length - 1; i >= 0; i--) {
       args[i] = stack.popOperand();
     }

@@ -26,6 +26,8 @@ import jg.cs.inter.IRCompiler;
 import jg.cs.inter.RunnableUnit;
 import jg.cs.inter.instruction.Instr;
 import jg.cs.runtime.Executor;
+import jg.cs.runtime.alloc.disc.DiskHeapAllocator;
+import jg.cs.runtime.alloc.disc.DiskOperandStack;
 import jg.cs.runtime.alloc.mem.MemFunctionStack;
 import jg.cs.runtime.alloc.mem.MemHeapAllocator;
 import jg.cs.runtime.alloc.mem.MemOperandStack;
@@ -40,8 +42,9 @@ public class Main {
   /**
    * Main driver method for the sNEK interpreter
    * @param args - the string arguments to the interpreter
+   * @throws IOException 
    */
-  public static void main(String[] args) {
+  public static void main(String[] args) throws IOException {
     args = new String[1];
     args[0] = "null.t";
     
@@ -116,9 +119,22 @@ public class Main {
         
         
         MemFunctionStack functionStack = new MemFunctionStack();
-        MemOperandStack operandStack = new MemOperandStack();
-        MemHeapAllocator heapAllocator = new MemHeapAllocator(200);
         
+        /*
+        MemOperandStack operandStack = new MemOperandStack();
+        */
+        //MemHeapAllocator heapAllocator = new MemHeapAllocator(200);
+        
+        File heapFile = new File("heap.hp");
+        heapFile.createNewFile();
+        heapFile.deleteOnExit();
+        
+        File operFile = new File("op.st");
+        operFile.createNewFile();
+        operFile.deleteOnExit();
+        
+        DiskHeapAllocator heapAllocator = new DiskHeapAllocator(heapFile, 1000);
+        DiskOperandStack operandStack = new DiskOperandStack(operFile);
         
         Executor executor = new Executor(functionStack, 
             operandStack, heapAllocator, result);

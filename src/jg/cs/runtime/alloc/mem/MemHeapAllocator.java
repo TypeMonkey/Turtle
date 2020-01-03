@@ -11,27 +11,33 @@ import jg.cs.runtime.alloc.HeapAllocator;
 import jg.cs.runtime.alloc.OperandStack;
 
 public class MemHeapAllocator implements HeapAllocator{
-  
-  private static final long STRING_GC_MASK = 0x0000000000000001L;
 
-  private final long [] heap;
+  private final byte [] heap;
   
   private int currentIndex;
   private int usedSpace;
   
   public MemHeapAllocator(int maxSize) {
-    heap = new long[Math.round(maxSize / 8)];
-    currentIndex = 1;
+    heap = new byte[maxSize];
+    currentIndex = 0;
+  }
+  
+  private void setArraySet(byte [] target, byte [] toCopy, int startIndex, int endIndex) {
+    int i = 0;
+    for ( ; startIndex <= endIndex; startIndex++) {
+      target[startIndex] = toCopy[i];
+      i++;
+    }
   }
   
   @Override
   public long allocate(OperandStack stack, int[] memberTypeCodes) {
     // TODO Auto-generated method stub
-    int totalSizeNeeded = currentIndex + 2 + memberTypeCodes.length;
-    if (totalSizeNeeded > heap.length - 1) {
+    int totalSizeNeeded = META_DATA_SIZE + (memberTypeCodes.length * Long.BYTES);
+    if (currentIndex + totalSizeNeeded > heap.length - 1) {
       throw new OutOfMemoryError("Need "+totalSizeNeeded+" bytes!, USED: "+usedSpace+" bytes");
     }
-    
+        
     long address = currentIndex;
     
     /*
@@ -43,15 +49,31 @@ public class MemHeapAllocator implements HeapAllocator{
      * ...
      * Element n
      */
-    heap[currentIndex] = 0;
-    heap[++currentIndex] = (memberTypeCodes.length << 1) + 1; //encode member size
+    
+    //place GC data on
+    setArraySet(heap, 
+        ByteBuffer.allocate(Long.BYTES).putLong(0).array(), 
+        currentIndex, 
+        currentIndex + Long.BYTES - 1);
+    currentIndex += Long.BYTES;
+    
+    //place SIZE
+    setArraySet(heap, 
+        ByteBuffer.allocate(Long.BYTES).putLong((memberTypeCodes.length << 1) + 1).array(), 
+        currentIndex, 
+        currentIndex + Long.BYTES - 1);
+    currentIndex += Long.BYTES;
     
     /*
      * top most value is bottom most member 
      */   
     for (int i = currentIndex + memberTypeCodes.length; i > 0; i--) {
-      heap[currentIndex] = stack.popOperand();
-      currentIndex++;
+      long operand = stack.popOperand();
+      setArraySet(heap, 
+          ByteBuffer.allocate(Long.BYTES).putLong(operand).array(), 
+          currentIndex, 
+          currentIndex + Long.BYTES - 1);
+      currentIndex += Long.BYTES;
     }
     
     usedSpace += totalSizeNeeded;
@@ -72,92 +94,94 @@ public class MemHeapAllocator implements HeapAllocator{
      * SIZE = charcater amount in ASCII
      * bytes....
      */
+    System.out.println("ALLOCATING STTRING |"+string+"|");
+
+    byte [] encoded = string.getBytes();
     
-    byte [] encoded = string.getBytes(StandardCharsets.US_ASCII);
-    long size = encoded.length;
-    encoded = ( (encoded.length % Long.BYTES) == 0) ? 
-                       encoded : 
-                         Arrays.copyOf(encoded, encoded.length + (Long.BYTES - encoded.length));
+    int paddingNeeded = Long.BYTES % encoded.length;
+    paddingNeeded = Long.BYTES - (encoded.length % Long.BYTES );
     
+    //System.out.println("--- RAW: "+encoded.length+" | PADDING: "+paddingNeeded);
     
+    //pad byte encoding
+    encoded = Arrays.copyOfRange(encoded, 0, encoded.length + paddingNeeded);
     
-    if (currentIndex + (encoded.length / Long.BYTES) + 2  > heap.length - 1) {
-      throw new OutOfMemoryError("Need "+(currentIndex + Math.floor(encoded.length / 8))+" bytes!, USED: "+usedSpace+" bytes");
+    //System.out.println("---- NEW: "+Arrays.toString(encoded));
+    
+    assert (encoded.length % Long.BYTES) == 0;
+    
+    int totalSizeNeeded = encoded.length + paddingNeeded + META_DATA_SIZE;
+    if (currentIndex + totalSizeNeeded > heap.length - 1) {
+      throw new OutOfMemoryError("Need "+totalSizeNeeded+" bytes!, USED: "+usedSpace+" bytes");
     }
     
-    System.out.println(" >>>>>>>ALLOCATING: "+string+" | "+currentIndex);
+    long address = currentIndex;
+    //System.out.println("ADDING AT: "+address);
+    //System.out.println(getHeapRepresentation());
     
-    long startAddress = currentIndex;
+    //place GC data on
+    setArraySet(heap, 
+        ByteBuffer.allocate(Long.BYTES).putLong(STRING_GC_MASK).array(), 
+        currentIndex, 
+        currentIndex + Long.BYTES - 1);
+    currentIndex += Long.BYTES;
     
-    heap[currentIndex] = STRING_GC_MASK;
-    heap[currentIndex + 1] = (size << 1) + 1;
+    //place SIZE
+    setArraySet(heap, 
+        ByteBuffer.allocate(Long.BYTES).putLong(( (encoded.length - paddingNeeded) << 1) + 1).array(), 
+        currentIndex, 
+        currentIndex + Long.BYTES - 1);
+    currentIndex += Long.BYTES;
     
-    System.out.println("---encoded size: "+heap[currentIndex + 1]);
+    setArraySet(heap, encoded, currentIndex, currentIndex + encoded.length - 1);
+    currentIndex += encoded.length;
     
-    currentIndex += 2;
+    //System.out.println("----PRINTING NEW HEAP");
+    //System.out.println(getHeapRepresentation());
     
-    System.out.println("  length index: "+currentIndex);
-    
-    for (int i = 0; i < encoded.length; i += Long.BYTES) {
-      heap[currentIndex] = ByteBuffer.wrap(Arrays.copyOfRange(encoded, i, i + Long.BYTES)).getLong();  
-      System.out.println("---BYTES: "+ByteBuffer.wrap(Arrays.copyOfRange(encoded, i, i + 8)).getLong());
-      System.out.println("   -> RED: "+heap[currentIndex]+" | "+currentIndex+" | "+i);
-      currentIndex++;
-    }
-    
-    usedSpace += 2 + (encoded.length / 8);
-    
-    System.out.println("-- consts: "+heap[0]+" | "+heap[1]+" | "+heap[2]);
-    
-    System.out.println("---ALLOCATING STRING: "+string+" | GIVING ADDR: "+startAddress);
-    
-    System.out.println(getHeapRepresentation());
-    
-    return (startAddress << 1);
+    return (address << 1);
   }
 
   @Override
   public String getString(long address) {
-    System.out.println("RETREIVING STRING------- "+(address >>> 1));
-    System.out.println(getHeapRepresentation());
+    int trueIndex = (int) (address >>> 1);
+    //System.out.println("RETREIVING STRING------- "+trueIndex);
+    //System.out.println(getHeapRepresentation());
     
-    long size = get(address, 1) >>> 1;  //size is encoded, must be decoded
+    long size = getSize(address) >>> 1;  //size is encoded, must be decoded
 
-    System.out.println("  ---STRING ADDR: "+(address >>> 1)+" | SIZE: "+size);
+    //System.out.println("  ---STRING ADDR: "+trueIndex+" | SIZE: "+size);
+    
+    int stringStart = trueIndex + (2 * Long.BYTES);
+    
+    
+    //System.out.println(" s: "+stringStart+" , e:"+(stringStart + size));
+    byte [] stringBytes = Arrays.copyOfRange(heap, stringStart, (int) (stringStart + size));
+    //System.out.println("   --- GOT "+stringBytes.length+" bytes");
       
-
-    ArrayList<Byte> bytes = new ArrayList<>();
-    
-    int segments = (int) Math.ceil((double)size / Long.BYTES);
-    System.out.println("  ---calculated segs: "+segments+" | true value: "+((double) size / 8));
-    for(int i = 0; i < segments; i++) {
-      long segment = get(address, i + 2);
-      System.out.println("---GOT "+segment);
-      byte[] buffer = ByteBuffer.allocate(Long.BYTES).putLong(segment).array();
-      for (byte b : buffer) {
-        bytes.add(b);
-      }
-      System.out.println("    -------------BYTES SO FAR |"+bytes+"|");
-    }
-    
-    byte [] conv = new byte[bytes.size()];
-    for (int i = 0; i < conv.length; i++) {
-      conv[i] = bytes.get(i);
-    }
-    
-    System.out.println("---raw bytes "+bytes.size()+" | "+bytes);
-    return new String(conv, 0, (int) size, StandardCharsets.US_ASCII);
+    return new String(stringBytes);
   }
   
   @Override
   public long get(long address, long offset) {
-    System.out.println(" ---HEAP GETTING AT IREAL INDEX: "+((int) ( (address>>>1) + offset)));
-    return heap[(int) ( (address>>>1) + offset)];
+    int trueIndex = (int) ((address >>> 1) + (offset * offset));
+    //System.out.println(" ---HEAP GETTING AT IREAL INDEX: "+trueIndex);
+    
+    byte [] rawValue = Arrays.copyOfRange(heap, trueIndex, trueIndex + Long.BYTES);
+    long decoded = ByteBuffer.wrap(rawValue).getLong();
+    
+    return decoded;
   }
 
   @Override
   public long mutate(long address, long offset, long newValue) {
-    heap[(int) ((address>>>1) + offset + 1)] = newValue;
+    //System.out.println(" ---MUTATING AT REAL INEX");
+    int trueIndex = (int) ((address >>> 1) + offset);
+    //System.out.println(" ---HEAP GETTING AT IREAL INDEX: "+trueIndex);
+    
+    byte [] newValueDecoded = ByteBuffer.allocate(Long.BYTES).putLong(newValue).array();
+    
+    setArraySet(heap, newValueDecoded, trueIndex, trueIndex + Long.BYTES - 1);
     return address;
   }
 
@@ -166,7 +190,13 @@ public class MemHeapAllocator implements HeapAllocator{
     /*
      * Assume struct sizes are encoded
      */
-    return heap[(int) (address+1)];
+    int trueIndex = ((int) (address >>> 1)) + Long.BYTES;
+    
+    //System.out.println("GETTING SIZE AT: "+trueIndex);
+    
+    byte [] raw = Arrays.copyOfRange(heap, trueIndex, trueIndex + Long.BYTES );
+    
+    return ByteBuffer.wrap(raw).getLong();
   }
 
   @Override
@@ -191,10 +221,12 @@ public class MemHeapAllocator implements HeapAllocator{
     
     final long SIGN_BIT_MASK = 0x8000000000000000L;
     
-    for (int i = 1; i <= currentIndex; i++) {
-      long val = heap[i] & Executor.TAG_MASK; 
-      long signBit = heap[i] & SIGN_BIT_MASK;
-      x += i+" | "+(val == 1 ? ((heap[i] >>> 1) | signBit) : Long.toHexString(heap[i]))+"\n";
+    for (int i = 0; i <= currentIndex; i += Long.BYTES) {
+      long rawValue = ByteBuffer.wrap(Arrays.copyOfRange(heap, i, i + Long.BYTES)).getLong();
+      
+      long val = rawValue & Executor.TAG_MASK; 
+      long signBit = rawValue & SIGN_BIT_MASK;
+      x += i+" | "+(val == 1 ? ((rawValue >>> 1) | signBit) : Long.toHexString(rawValue))+"\n";
     }
     
     x += "=======HEAP=======TOTAL:"+heap.length;

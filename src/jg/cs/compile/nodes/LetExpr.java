@@ -31,8 +31,10 @@ public class LetExpr extends Expr{
   public String toString() {
     String whole = "LET ~ "+vars+System.lineSeparator();
     
+    int ln = 1;
     for (Expr expr : expressions) {
-      whole += "   "+expr+System.lineSeparator();
+      whole += "   "+ln+": "+expr+System.lineSeparator();
+      ln ++;
     }
     
     return whole;

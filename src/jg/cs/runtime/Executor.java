@@ -91,7 +91,7 @@ public class Executor {
   }
   
   public void execute() {
-    System.out.println("---EXECUTING---"); 
+    System.out.println("==========================EXECUTING=========================="); 
     
     /*
      * All values in Turtle are 64-bit
@@ -189,9 +189,9 @@ public class Executor {
     else if (instr.getType() == LoadType.SCLOAD) {
       long addr = heapAllocator.allocate(instr.getValue().toString());
       
-      System.out.println(" ---> LOADING CONS STRING: "+(addr >>> 1));
+      //System.out.println(" ---> LOADING CONS STRING: "+(addr >>> 1));
       
-      System.out.println(" ---just in case: \n"+heapAllocator.getHeapRepresentation());
+      //System.out.println(" ---just in case: \n"+heapAllocator.getHeapRepresentation());
       
       operandStack.pushOperand(addr);
     }
@@ -234,67 +234,67 @@ public class Executor {
       operandStack.pushOperand(result);
     }
     else if (instr.getInstr() == NAInstr.SADD) {
-      System.out.println("---CURRENT["+instructionIndex+"]: "+instr);
+      //System.out.println("---CURRENT["+instructionIndex+"]: "+instr);
 
-      System.out.println("---SADD OSTACK: \n"+operandStack);
+      //System.out.println("---SADD OSTACK: \n"+operandStack);
       long right = operandStack.popOperand(); 
       long left = operandStack.popOperand();
       
-      System.out.println("---> SADD| LEFT ADDR: "+(left >>> 1)+"  ,  RIGHT ADDR:  "+(right >>> 1));
+      //System.out.println("---> SADD| LEFT ADDR: "+(left >>> 1)+"  ,  RIGHT ADDR:  "+(right >>> 1));
       
       String leftStr = heapAllocator.getString(left);
       String rightStr = heapAllocator.getString(right);
       
-      System.out.println(" SADD: Left: '"+leftStr+"'");
-      System.out.println(" SADD: Right: '"+rightStr+"'");
+      //System.out.println(" SADD: Left: '"+leftStr+"'");
+      //System.out.println(" SADD: Right: '"+rightStr+"'");
 
       
-      System.out.println("==================================SADD RESULT: "+leftStr+rightStr);
+      //System.out.println("==================================SADD RESULT: "+leftStr+rightStr);
 
       long resultAddress = heapAllocator.allocate(leftStr + rightStr);
       operandStack.pushOperand(resultAddress);
       
-      System.out.println("====================================REREAD: "+heapAllocator.getString(resultAddress));
+      //System.out.println("====================================REREAD: "+heapAllocator.getString(resultAddress));
     }
     else if (instr.getInstr() == NAInstr.IGREAT) {
-      long left = operandStack.popOperand();
       long right = operandStack.popOperand();
+      long left = operandStack.popOperand();
       
       operandStack.pushOperand(left > right ? TRUE : FALSE);
     }
     else if (instr.getInstr() == NAInstr.IGREATQ) {
-      long left = operandStack.popOperand();
       long right = operandStack.popOperand();
+      long left = operandStack.popOperand();
       
       operandStack.pushOperand(left >= right ? TRUE : FALSE);
     }
     else if (instr.getInstr() == NAInstr.ILESS) {
-      long left = operandStack.popOperand();
       long right = operandStack.popOperand();
+      long left = operandStack.popOperand();
       
       operandStack.pushOperand(left < right ? TRUE : FALSE);
     }
     else if (instr.getInstr() == NAInstr.ILESSQ) {
-      long left = operandStack.popOperand();
       long right = operandStack.popOperand();
+      long left = operandStack.popOperand();
       
       operandStack.pushOperand(left <= right ? TRUE : FALSE);
     }
     else if (instr.getInstr() == NAInstr.NOTEQ) {
-      long left = operandStack.popOperand();
       long right = operandStack.popOperand();
+      long left = operandStack.popOperand();
       
       operandStack.pushOperand(left != right ? TRUE : FALSE);
     }
     else if (instr.getInstr() == NAInstr.ISUB) {
-      System.out.println("---ISUB OSTACK: \n"+operandStack);
+      //System.out.println("---ISUB OSTACK: \n"+operandStack);
 
       long right = operandStack.popOperand() - 1; //decode right
       long left = operandStack.popOperand() - 1; //decode left
       
       long result = (left - right) + 1;
       
-      System.out.println("----ISUB: LEFT="+(left >>> 1)+" | RIGHT="+(right >>> 1)+" , res="+(result >>> 1));
+      //System.out.println("----ISUB: LEFT="+(left >>> 1)+" | RIGHT="+(right >>> 1)+" , res="+(result >>> 1));
       
       operandStack.pushOperand(result);
     }
@@ -355,7 +355,7 @@ public class Executor {
   
   private void execBuiltInFunc(LabelInstr labelInstr) {
     if (labelInstr.isBuiltin()) {
-      System.out.println("----CALLING BUILT IN "+operandStack);
+      //System.out.println("----CALLING BUILT IN "+operandStack);
       BuiltInExecutor.executeBuiltIn(labelInstr.getRiCode(), fstack, operandStack, heapAllocator);
     }
     //if not a built in label, don't do anything

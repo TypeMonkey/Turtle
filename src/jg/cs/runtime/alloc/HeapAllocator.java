@@ -10,6 +10,16 @@ import jg.cs.common.types.Type;
 public interface HeapAllocator {
   
   /**
+   * The amount of bytes taken up by struct metadata:
+   * 
+   * GC - 8 bytes
+   * SIZE - 8 bytes
+   */
+  public static final int META_DATA_SIZE = 16;
+  
+  public static final long STRING_GC_MASK = 0x0000000000000001L;
+  
+  /**
    * Allocates a struct on to the heap
    * @param stack - the OperandStack to retreieve values from
    * @param memberTypeCodes - the type codes of struct members

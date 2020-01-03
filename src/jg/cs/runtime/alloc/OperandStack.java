@@ -3,6 +3,8 @@ package jg.cs.runtime.alloc;
 import java.util.EmptyStackException;
 import java.util.NoSuchElementException;
 
+import jg.cs.runtime.alloc.err.StackException;
+
 /**
  * An operand stack is used by instructions as a 
  * sort of "workbench" to store temporary values.
@@ -20,14 +22,14 @@ public interface OperandStack {
    * 
    * @param value - the value to push
    */
-  void pushOperand(long value);
+  void pushOperand(long value) throws StackException;
   
   /**
    * Pops an operand from the top of the stack
    * @return the topmost operand
-   * @throws EmptyStackException - there are no more elements on the stack
+   * @throws StackException - there are no more elements on the stack
    */
-  long popOperand() throws EmptyStackException;
+  long popOperand() throws StackException;
   
   /**
    * Returns the amount of operands currently on the stack
@@ -38,7 +40,7 @@ public interface OperandStack {
   /**
    * Clears the operand stack of elements
    */
-  void clear();
+  void clear() throws StackException;
   
   /**
    * Returns the string representation of the stack

@@ -40,40 +40,36 @@ import jg.cs.compile.nodes.atoms.Typ;
  *
  */
 public class StructureVerifier {
+ 
   private final List<Expr> rawExprs;
-  private final Map<FunctionSignature, FunctionLike> topLevelFunctions;
-  private final Map<String, DataDeclaration> structDecs;
   private final String filename;
+  
+  private final Map<String, DataDeclaration> structDecs;
     
   public StructureVerifier(String filename, List<Expr> rawExprs) {
     this.rawExprs = rawExprs;
-    this.topLevelFunctions = new HashMap<>();
-    this.structDecs = new HashMap<>();
     this.filename = filename;   
+    structDecs = new HashMap<>();
   }
   
   public Program verify() {        
     //add all top-level (file) function signatures in the global function map
     //also, add all top level Data declarations in global struct map
     
-    //add built-in functions too
-    for (Entry<FunctionSignature, FunctionLike> builtin : BuiltInFunctions.BUILT_IN_MAP.entrySet()) {
-      topLevelFunctions.put(builtin.getValue().getIdentity().getSignature(), builtin.getValue());
-    }
-    
+    HashMap<FunctionSignature, FunctionLike> topLevelFunctions = new HashMap<>();
+
     ArrayList<Expr> topLevelStatements = new ArrayList<Expr>();
+    
     for (Expr component : rawExprs) {
+      verifyExpr(component, new ArrayList<>(), true);
       if (component instanceof FunctionLike) {
         FunctionLike exp = (FunctionLike) component;
-        
-        if (topLevelFunctions.containsKey(exp.getIdentity().getSignature())) {
-          throw new DuplicateFunctionException(component.getLeadToken(), exp.getIdentity().getSignature(), filename);
-        }
         
         if (exp instanceof DataDeclaration) {
           DataDeclaration declaration = (DataDeclaration) exp;
           structDecs.put(declaration.getName().getImage(), declaration);
         }
+        
         topLevelFunctions.put(exp.getIdentity().getSignature(), exp);
       }
       else {
@@ -82,7 +78,7 @@ public class StructureVerifier {
     }
     
     for (Expr component : rawExprs) {
-      verifyExpr(component, new ArrayList<>(), fwrap(topLevelFunctions), true);
+      verifyExpr(component, new ArrayList<>(), true);
     }   
     
     Map<Type, DataDeclaration> actualDatas = 
@@ -101,7 +97,6 @@ public class StructureVerifier {
   
   private void verifyExpr(Expr expr, 
       List<Map<String, IdenTypeValTuple>> others, 
-      List<Map<FunctionSignature, FunctionLike>> fenv,
       boolean isTopLevel) {
     //System.out.println("TARGET: "+expr);
     
@@ -131,8 +126,8 @@ public class StructureVerifier {
       
       //verifying member name will be done during type checking
       
-      verifyExpr(mutateExpr.getTarget(), others, fenv, isTopLevel);
-      verifyExpr(mutateExpr.getNewValue(), others, fenv, isTopLevel);     
+      verifyExpr(mutateExpr.getTarget(), others, isTopLevel);
+      verifyExpr(mutateExpr.getNewValue(), others, isTopLevel);     
     }
     else if (expr instanceof DataDeclaration) {
       if (!isTopLevel) {
@@ -161,46 +156,45 @@ public class StructureVerifier {
       
       //verifying member name will be done during type checking
       
-      verifyExpr(retrieveExpr.getTarget(), others, fenv, isTopLevel);
+      verifyExpr(retrieveExpr.getTarget(), others, isTopLevel);
     }
     else if (expr instanceof Identifier) {
-      verifyIdentifier((Identifier) expr, others, fenv);
+      verifyIdentifier((Identifier) expr, others);
     }
     else if (expr instanceof FunctDefExpr) {
-      verifyFuncDef((FunctDefExpr) expr, others, fenv);
+      verifyFuncDef((FunctDefExpr) expr, others);
     }
     else if (expr instanceof LetExpr) {
-      verifyLet((LetExpr) expr, others, fenv);
+      verifyLet((LetExpr) expr, others);
     }
     else if (expr instanceof IfExpr) {
       IfExpr ifExpr = (IfExpr) expr;
-      verifyExpr(ifExpr.getCondition(), others, fenv, isTopLevel);
-      verifyExpr(ifExpr.getTrueConseq(), others, fenv, isTopLevel);
-      verifyExpr(ifExpr.getFalseConseq(), others, fenv, isTopLevel);
+      verifyExpr(ifExpr.getCondition(), others, isTopLevel);
+      verifyExpr(ifExpr.getTrueConseq(), others, isTopLevel);
+      verifyExpr(ifExpr.getFalseConseq(), others, isTopLevel);
     }
     else if (expr instanceof BinaryOpExpr) {
       BinaryOpExpr binExpr = (BinaryOpExpr) expr;
-      verifyExpr(binExpr.getLeft(), others, fenv, isTopLevel);
-      verifyExpr(binExpr.getRight(), others, fenv, isTopLevel);
+      verifyExpr(binExpr.getLeft(), others, isTopLevel);
+      verifyExpr(binExpr.getRight(), others, isTopLevel);
     }
     else if (expr instanceof SetExpr) {
       SetExpr setExpr = (SetExpr) expr;
-      verifyIdentifier(setExpr.getIdentifier(), others, fenv);
-      verifyExpr(setExpr.getValue(), others, fenv, isTopLevel);
+      verifyIdentifier(setExpr.getIdentifier(), others);
+      verifyExpr(setExpr.getValue(), others, isTopLevel);
     }
     else if (expr instanceof FunctionCall) {
-      checkFunctionCall((FunctionCall) expr, others, fenv);
+      checkFunctionCall((FunctionCall) expr, others);
     }
     else if (expr instanceof WhileExpr) {
-      checkWhileLoop((WhileExpr) expr, others, fenv);
+      checkWhileLoop((WhileExpr) expr, others);
     }
   }
 
-  private void checkWhileLoop(WhileExpr expr, List<Map<String, IdenTypeValTuple>> env,
-      List<Map<FunctionSignature, FunctionLike>> fenv) {
+  private void checkWhileLoop(WhileExpr expr, List<Map<String, IdenTypeValTuple>> env) {
     
     //verify condition
-    verifyExpr(expr.getCondition(), env, fenv, false);
+    verifyExpr(expr.getCondition(), env, false);
     
     /*
      * there maybe nested functions declared within this while-loop
@@ -214,11 +208,11 @@ public class StructureVerifier {
       lastExpr = statement;
       if (statement instanceof FunctDefExpr) {
         FunctDefExpr nested = (FunctDefExpr) statement;
-        verifyFuncDef(nested, env, fconcatToFront(localFuncMap, fenv));
+        verifyFuncDef(nested, env);
         localFuncMap.put(nested.getIdentity().getSignature(), nested);
       }
       else {
-        verifyExpr(statement, env, fconcatToFront(localFuncMap, fenv), false);
+        verifyExpr(statement, env,  false);
       }
     }
     
@@ -230,15 +224,13 @@ public class StructureVerifier {
     }
   }
 
-  private void checkFunctionCall(FunctionCall expr, List<Map<String, IdenTypeValTuple>> env,
-      List<Map<FunctionSignature, FunctionLike>> fenv) {
+  private void checkFunctionCall(FunctionCall expr, List<Map<String, IdenTypeValTuple>> env) {
     for (Expr arg : expr.getArguments()) {
-      verifyExpr(arg, env, fenv, false);
+      verifyExpr(arg, env, false);
     }
   }
 
-  private void verifyIdentifier(Identifier identifier, List<Map<String, IdenTypeValTuple>> env,
-      List<Map<FunctionSignature, FunctionLike>> fenv) {
+  private void verifyIdentifier(Identifier identifier, List<Map<String, IdenTypeValTuple>> env) {
     for (Map<String, IdenTypeValTuple> map : env) {
       if (map.containsKey(identifier.getActualValue())) {
         return;
@@ -247,8 +239,7 @@ public class StructureVerifier {
     throw new UnresolvableComponentException(identifier, filename);
   }
   
-  private void verifyFuncDef(FunctDefExpr expr, List<Map<String, IdenTypeValTuple>> others,
-      List<Map<FunctionSignature, FunctionLike>> fenv) {
+  private void verifyFuncDef(FunctDefExpr expr, List<Map<String, IdenTypeValTuple>> others) {
     
     /*
      * Guarantees that the parsing stage provides:
@@ -271,24 +262,10 @@ public class StructureVerifier {
       localEnv.put(var.getIdentifier().getActualValue(), var);
     }
     
-    /*
-     * there maybe nested functions declared within this function
-     * that may have been used. We need a new map to pass to nested expressions for such
-     * nested functions
-     */
-    LinkedHashMap<FunctionSignature, FunctionLike> localFuncMap = new LinkedHashMap<>();
-    
     Expr lastExpr = null;
     for (Expr statement : expr.getExpressionsExprs()) {
-      lastExpr = statement;
-      if (statement instanceof FunctDefExpr) {
-        FunctDefExpr nested = (FunctDefExpr) statement;
-        verifyFuncDef(nested, concatToFront(localEnv, others), fconcatToFront(localFuncMap, fenv));
-        localFuncMap.put(nested.getIdentity().getSignature(), nested);
-      }
-      else {
-        verifyExpr(statement, concatToFront(localEnv, others), fconcatToFront(localFuncMap, fenv), false);
-      }
+      lastExpr = statement;    
+      verifyExpr(statement, concatToFront(localEnv, others), false);
     }
     
     /*
@@ -299,8 +276,7 @@ public class StructureVerifier {
     }
   }
 
-  private void verifyLet(LetExpr expr, List<Map<String, IdenTypeValTuple>> others,
-      List<Map<FunctionSignature, FunctionLike>> fenv) {
+  private void verifyLet(LetExpr expr, List<Map<String, IdenTypeValTuple>> others) {
     
     /*
      * Guarantees that the parsing stage provides:
@@ -317,28 +293,15 @@ public class StructureVerifier {
         throw new UnresolvableComponentException(var.getType(), var.getIdentifier().getLeadToken(), filename);
       }
       
-      verifyExpr(var.getValue(), concatToFront(localEnv, others) , fenv, false);
+      verifyExpr(var.getValue(), concatToFront(localEnv, others), false);
       localEnv.put(var.getIdentifier().getActualValue(), var);
     }
-    
-    /*
-     * there maybe nested functions declared within this function
-     * that may have been used. We need a new map to pass to nested expressions for such
-     * nested functions
-     */
-    LinkedHashMap<FunctionSignature, FunctionLike> localFuncMap = new LinkedHashMap<>();
     
     Expr lastExpr = null;
     for (Expr statement : expr.getExpressions()) {
       lastExpr = statement;
-      if (statement instanceof FunctDefExpr) {
-        FunctDefExpr nested = (FunctDefExpr) statement;
-        verifyFuncDef(nested, concatToFront(localEnv, others), fconcatToFront(localFuncMap, fenv));
-        localFuncMap.put(nested.getIdentity().getSignature(), nested);
-      }
-      else {
-        verifyExpr(statement, concatToFront(localEnv, others), fconcatToFront(localFuncMap, fenv), false);
-      }
+      
+      verifyExpr(statement, concatToFront(localEnv, others), false);
     }
     
     /*
@@ -356,24 +319,6 @@ public class StructureVerifier {
     ArrayList<Map<String, IdenTypeValTuple>> newEnv = new ArrayList<>();
     newEnv.add(newMap);
     newEnv.addAll(others);
-    
-    return newEnv;
-  }
-  
-
-  private List<Map<FunctionSignature, FunctionLike>> fconcatToFront(
-      Map<FunctionSignature, FunctionLike> newMap, 
-      List<Map<FunctionSignature, FunctionLike>> others){
-    ArrayList<Map<FunctionSignature, FunctionLike>> newEnv = new ArrayList<>();
-    newEnv.add(newMap);
-    newEnv.addAll(others);
-    
-    return newEnv;
-  }
-
-  private List<Map<FunctionSignature, FunctionLike>> fwrap(Map<FunctionSignature, FunctionLike> newMap){
-    ArrayList<Map<FunctionSignature, FunctionLike>> newEnv = new ArrayList<>();
-    newEnv.add(newMap);
     
     return newEnv;
   }

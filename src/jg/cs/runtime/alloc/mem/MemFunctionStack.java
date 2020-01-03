@@ -9,7 +9,6 @@ import jg.cs.runtime.alloc.FunctionStack;
 public class MemFunctionStack implements FunctionStack{
   
   private long [] fstack;
-  private long frames;
   
   private int index;
   
@@ -55,7 +54,7 @@ public class MemFunctionStack implements FunctionStack{
   }
   
   @Override
-  public int getCurrentFP() {
+  public long getCurrentFP() {
     return index;
   }
 
@@ -63,11 +62,6 @@ public class MemFunctionStack implements FunctionStack{
   public long getTotalElements() {
     // TODO Auto-generated method stub
     return index;
-  }
-
-  @Override
-  public long getTotalFrames() {
-    return frames;
   }
   
   @Override

@@ -2,6 +2,8 @@ package jg.cs.runtime.alloc;
 
 import java.util.NoSuchElementException;
 
+import jg.cs.runtime.alloc.err.StackException;
+
 /**
  * The function stack keeps track of function frames.
  * 
@@ -34,7 +36,7 @@ public interface FunctionStack {
    * 
    * @throws IllegalArgumentException - if the offset is invalid
    */
-  public long retrieveAtOffset(long offset) throws IllegalArgumentException;
+  public long retrieveAtOffset(long offset) throws IllegalArgumentException, StackException;
   
   /**
    * Saves a value to the given offset on the current frame
@@ -42,7 +44,7 @@ public interface FunctionStack {
    * @param value - the value to save
    * @throws IllegalArgumentException - if the offset is invalid
    */
-  public void saveAtOffset(long offset, long value) throws IllegalArgumentException;
+  public void saveAtOffset(long offset, long value) throws IllegalArgumentException, StackException;
   
   public long getRealAddress(long offset);
   
@@ -56,11 +58,5 @@ public interface FunctionStack {
    * Returns the current frame pointer
    * @return the current frame pointer
    */
-  public int getCurrentFP();
-  
-  /**
-   * Gets the number of frames registered on the stack
-   * @return the number of frames registered on the stack
-   */
-  public long getTotalFrames();
+  public long getCurrentFP();
 }
