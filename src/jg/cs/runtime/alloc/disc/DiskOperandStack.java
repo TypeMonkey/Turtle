@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.stream.Collectors;
 
 import jg.cs.runtime.alloc.OperandStack;
 import jg.cs.runtime.alloc.err.StackException;
@@ -21,7 +22,7 @@ public class DiskOperandStack implements OperandStack{
   }
 
   private void growStack() throws IOException {
-    stack.setLength(stack.length() + 10);
+    stack.setLength(stack.length() + (Long.BYTES * 10));
   }
   
   @Override
@@ -48,6 +49,8 @@ public class DiskOperandStack implements OperandStack{
         throw new StackException(ExceptionCode.EMPTY_STACK);
       }
       else {
+        
+        //System.out.println(" ---CURRENT FO: "+currentFileOffet);
         stack.seek(currentFileOffet - Long.BYTES);
 
         long val = stack.readLong();
@@ -55,6 +58,7 @@ public class DiskOperandStack implements OperandStack{
         return val;
       }
     } catch (IOException e) {
+      e.printStackTrace();
       throw new StackException(ExceptionCode.IO_ERROR);
     }
   }
@@ -74,4 +78,28 @@ public class DiskOperandStack implements OperandStack{
     }
   }
 
+  @Override
+  public String toString() {
+    String s = "=====OPERAND STACK=====\n";
+    s += "BOTTOM\n";
+  
+    
+    try {
+      stack.seek(0);
+      
+      int i = 0;
+      while (i < currentFileOffet) {
+        s += " ["+(stack.readLong() >>> 1)+"]\n";
+        i += Long.BYTES;
+      }
+      
+      s += "TOP\n";
+
+      stack.seek(currentFileOffet);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+        
+    return s;
+  }
 }

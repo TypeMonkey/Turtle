@@ -17,6 +17,11 @@ public class LoadInstr<T> extends Instr{
     MLOAD,
     
     /**
+     * Loads the null to the operand stack
+     */
+    NLOAD,
+    
+    /**
      * Loads from constant
      */
     ICLOAD,

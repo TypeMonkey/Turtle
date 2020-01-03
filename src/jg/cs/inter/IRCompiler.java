@@ -224,6 +224,10 @@ public class IRCompiler {
       instrs.add(
           new DataLabelInstr(fmap.get(dec.getValue().getIdentity().getSignature()).label,
               tcodes, dec.getValue().getLeadLnNumber(), dec.getValue().getLeadColNumber()));
+      instrs.add(
+          new NoArgInstr(NAInstr.RET, 
+              dec.getValue().getLeadLnNumber(), 
+              dec.getValue().getLeadColNumber()));
     }
     
     //Go over built-in functions and place their label
@@ -300,7 +304,7 @@ public class IRCompiler {
     else if (expr instanceof NullValue) {
       NullValue nullValue = (NullValue) expr;
       return new InstrAndType(nullValue.getActualValue().getActualValue(), 
-          new LoadInstr<Long>(LoadType.MLOAD, 0L, nullValue.getLeadLnNumber(), nullValue.getLeadColNumber()));
+          new LoadInstr<Long>(LoadType.NLOAD, 0L, nullValue.getLeadLnNumber(), nullValue.getLeadColNumber()));
     }
     else if (expr instanceof Identifier) {
       return compileIden((Identifier) expr, indexMaps, fMaps, stackIndex);
@@ -329,6 +333,8 @@ public class IRCompiler {
     else if (expr instanceof MutateExpr) {
       MutateExpr mutateExpr = (MutateExpr) expr;
       
+      System.out.println("******MUTATE INSTRUCTION COMPILED!!!");
+      
       ArrayList<Instr> instrs = new ArrayList<Instr>();
       
       InstrAndType target = compileExpr(mutateExpr.getTarget(), indexMaps, fMaps, stackIndex);
@@ -344,6 +350,10 @@ public class IRCompiler {
     }
     else if (expr instanceof RetrieveExpr) {
       RetrieveExpr retrieveExpr = (RetrieveExpr) expr;
+      
+      System.out.println("******RETRIVE INSTRUCTION COMPILED!!!");
+
+      
       ArrayList<Instr> instrs = new ArrayList<Instr>();
 
       InstrAndType target = compileExpr(retrieveExpr.getTarget(), indexMaps, fMaps, stackIndex);

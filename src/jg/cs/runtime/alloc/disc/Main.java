@@ -15,6 +15,15 @@ public class Main {
     
     System.out.println(operandStack.popOperand());
     System.out.println(operandStack.popOperand());
+    
+    operandStack.pushOperand(1);
+    System.out.println(operandStack.popOperand());
+    
+    operandStack.pushOperand(6);
+    System.out.println(operandStack.popOperand());
+    
+    operandStack.pushOperand(7);
+    System.out.println(operandStack.popOperand());
   }
   
 }

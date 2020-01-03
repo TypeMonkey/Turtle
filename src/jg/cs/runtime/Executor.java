@@ -85,9 +85,7 @@ public class Executor {
       }
     }
     
-    instructionIndex = program.getMainLabel();
-    
-    System.out.println("----LABEL MAP: "+labelMap);
+    instructionIndex = program.getMainLabel();  
   }
   
   public void execute() {
@@ -116,7 +114,9 @@ public class Executor {
   }
   
   private void execInstr(Instr instr) {
-    //System.out.println("---CURRENT["+instructionIndex+"]: "+instr);
+    System.out.println("====CURRENT["+instructionIndex+"]: "+instr+" ln:"+instr.getLineNumber());
+    
+    
     if (instr instanceof DataLabelInstr) {
       execDataLabel((DataLabelInstr) instr);
     }
@@ -148,6 +148,9 @@ public class Executor {
       IncfpInstr fpChangeInstr = (IncfpInstr) instr;
       fstack.changeFPBy(fpChangeInstr.getAmount());
     }
+    
+    //System.out.println(heapAllocator.getHeapRepresentation());
+    //System.out.println(operandStack);
   }
   
   private void execDataLabel(DataLabelInstr instr) {
@@ -156,6 +159,7 @@ public class Executor {
      * 
      * TOP most value on stack = bottom-most member declaration
      */   
+    //System.out.println("current opstack \n"+operandStack);
     operandStack.pushOperand(heapAllocator.allocate(operandStack, instr.getTypeCode()));
   }
   
@@ -186,24 +190,36 @@ public class Executor {
 
       operandStack.pushOperand(constant);
     }
-    else if (instr.getType() == LoadType.SCLOAD) {
-      long addr = heapAllocator.allocate(instr.getValue().toString());
-      
-      //System.out.println(" ---> LOADING CONS STRING: "+(addr >>> 1));
+    else if (instr.getType() == LoadType.NLOAD) {      
+      //System.out.println("----> LOADING FROM STACK: "+(value >>> 1));
       
       //System.out.println(" ---just in case: \n"+heapAllocator.getHeapRepresentation());
       
+      operandStack.pushOperand(0);
+    }
+    else if (instr.getType() == LoadType.SCLOAD) {
+      long addr = heapAllocator.allocate(instr.getValue().toString());
+      
+      System.out.println(" ---> LOADING CONS STRING: "+(addr >>> 1));
+      
+      System.out.println(" ---just in case: \n"+heapAllocator.getHeapRepresentation());
+      System.out.println(" ---and the ostack too: \n"+operandStack);
+      
       operandStack.pushOperand(addr);
+      
+      System.out.println(" ---and the ostack AFTER: \n"+operandStack);
+
     }
     else if (instr.getType() == LoadType.MLOAD) {
       long offset = ((LoadInstr<Long>) instr).getValue();
       long value = fstack.retrieveAtOffset(offset);
       
-      //System.out.println("----> LOADING FROM STACK: "+(value >>> 1));
+      System.out.println("----> LOADING FROM STACK: "+(value >>> 1));
       
-      //System.out.println(" ---just in case: \n"+heapAllocator.getHeapRepresentation());
+      System.out.println(" ---just in case: \n"+heapAllocator.getHeapRepresentation());
       
       operandStack.pushOperand(value);
+      System.out.println(" ---and the ostack AFTER: \n"+operandStack);
     }
   }
   
@@ -236,20 +252,22 @@ public class Executor {
     else if (instr.getInstr() == NAInstr.SADD) {
       //System.out.println("---CURRENT["+instructionIndex+"]: "+instr);
 
-      //System.out.println("---SADD OSTACK: \n"+operandStack);
+      System.out.println("---SADD OSTACK: \n"+operandStack);
       long right = operandStack.popOperand(); 
       long left = operandStack.popOperand();
       
-      //System.out.println("---> SADD| LEFT ADDR: "+(left >>> 1)+"  ,  RIGHT ADDR:  "+(right >>> 1));
+      System.out.println("---> SADD| LEFT ADDR: "+(left >>> 1)+"  ,  RIGHT ADDR:  "+(right >>> 1));
+      
+      System.out.println("is left primitive??? "+((left & 1) == 1 ? true : false));
+      System.out.println("is right primitive??? "+((right & 1) == 1 ? true : false));
       
       String leftStr = heapAllocator.getString(left);
       String rightStr = heapAllocator.getString(right);
       
-      //System.out.println(" SADD: Left: '"+leftStr+"'");
-      //System.out.println(" SADD: Right: '"+rightStr+"'");
-
+      System.out.println(" SADD: Left: '"+leftStr+"'");
+      System.out.println(" SADD: Right: '"+rightStr+"'");
       
-      //System.out.println("==================================SADD RESULT: "+leftStr+rightStr);
+      System.out.println("==================================SADD RESULT: "+leftStr+rightStr);
 
       long resultAddress = heapAllocator.allocate(leftStr + rightStr);
       operandStack.pushOperand(resultAddress);
@@ -317,6 +335,7 @@ public class Executor {
        * By doing -1, it'll increment it by 1 in the next loop and execute our desired instruction
        */
       
+      
       long callResult = operandStack.popOperand();
       long callerFp = operandStack.popOperand();
       
@@ -326,6 +345,7 @@ public class Executor {
       //System.out.println("---PUSHING CALL RESULT: "+callerFp);
       operandStack.pushOperand(callResult);
       
+      System.out.println("---RET: New op stack: "+operandStack);
       //System.out.println("---RET: MAX: "+(program.getInstructions().length - 1) + " | change: "+instructionIndex);
     }
     else if (instr.getInstr() == NAInstr.PUSHFP) {      
@@ -338,12 +358,18 @@ public class Executor {
     }
   }
   
-  private void execRet(RetrieveInstr instr) {
-    long address = operandStack.popOperand();
+  private void execRet(RetrieveInstr instr) {    
+    long address = operandStack.popOperand();    
     
-    address = address >> 1; //decode reference
+    //System.out.println("----exec rec: "+instr+" | "+(address >>> 1));
+    //System.out.println("   operands: "+operandStack);
     
-    operandStack.pushOperand(heapAllocator.get(address, instr.getOffset()));
+    long value = heapAllocator.get(address, instr.getOffset());
+    
+    //System.out.println("--- GOT MEMBER VALUE: "+(value >>> 1));
+    //System.out.println(heapAllocator.getHeapRepresentation());
+    
+    operandStack.pushOperand(value);
   }
   
   private void execStore(StoreInstr instr) {
@@ -351,14 +377,21 @@ public class Executor {
     long value = operandStack.popOperand();
     
     fstack.saveAtOffset(address, value);
+    //operandStack.pushOperand(address);
   }
   
   private void execBuiltInFunc(LabelInstr labelInstr) {
     if (labelInstr.isBuiltin()) {
-      //System.out.println("----CALLING BUILT IN "+operandStack);
+      System.out.println("----CALLING BUILT IN "+operandStack);
       BuiltInExecutor.executeBuiltIn(labelInstr.getRiCode(), fstack, operandStack, heapAllocator);
+      
+      System.out.println("---CALLED BUILT IN: New op stack: "+operandStack);
     }
     //if not a built in label, don't do anything
+    else {
+      System.out.println("----called function??? ");
+      System.out.println("      op stack: "+operandStack);
+    }
   }
   
   private int translateToIndex(String label) {

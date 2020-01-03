@@ -17,17 +17,7 @@
 )
 
 (let ((b:int 5)) 
-  (println (f b (println 'mead')) )
-  (println 'hello world')
-  (set b 
-   (if true
-      10
-      5
-    ) 
-  )
-  (println (toStr b))
-  (println (toStr (dec 1)))
-  
+  (println (f b (println 'mead')) ) 
   (let (( c:Dat (null Dat) )) 
     (set c (Dat 10 true 'for dat' c ))
     (println (get c c))

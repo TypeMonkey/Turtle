@@ -26,6 +26,7 @@ import jg.cs.inter.IRCompiler;
 import jg.cs.inter.RunnableUnit;
 import jg.cs.inter.instruction.Instr;
 import jg.cs.runtime.Executor;
+import jg.cs.runtime.alloc.disc.DiskFunctionStack;
 import jg.cs.runtime.alloc.disc.DiskHeapAllocator;
 import jg.cs.runtime.alloc.disc.DiskOperandStack;
 import jg.cs.runtime.alloc.mem.MemFunctionStack;
@@ -46,7 +47,7 @@ public class Main {
    */
   public static void main(String[] args) throws IOException {
     args = new String[1];
-    args[0] = "null.t";
+    args[0] = "small.t";
     
     if (args.length == 1 && getFileExtension(args[0]).equals("t")) {
       File targetFile = new File(args[0]);
@@ -94,6 +95,7 @@ public class Main {
         TypeChecker typeChecker = new TypeChecker(program);
         typeChecker.checkType();
         
+        System.out.println("-------------COMPILING-------------");
         IRCompiler compiler = new IRCompiler(program);
         RunnableUnit result = compiler.compile();
         
@@ -118,12 +120,13 @@ public class Main {
         }
         
         
-        MemFunctionStack functionStack = new MemFunctionStack();
         
-        /*
-        MemOperandStack operandStack = new MemOperandStack();
-        */
-        //MemHeapAllocator heapAllocator = new MemHeapAllocator(200);
+        
+        //MemOperandStack operandStack = new MemOperandStack();       
+        //MemHeapAllocator heapAllocator = new MemHeapAllocator(1000);
+        //MemFunctionStack functionStack = new MemFunctionStack();
+        
+        
         
         File heapFile = new File("heap.hp");
         heapFile.createNewFile();
@@ -133,6 +136,11 @@ public class Main {
         operFile.createNewFile();
         operFile.deleteOnExit();
         
+        File fstackFile = new File("fs.st");
+        fstackFile.createNewFile();
+        fstackFile.deleteOnExit();
+        
+        DiskFunctionStack functionStack = new DiskFunctionStack(fstackFile);
         DiskHeapAllocator heapAllocator = new DiskHeapAllocator(heapFile, 1000);
         DiskOperandStack operandStack = new DiskOperandStack(operFile);
         

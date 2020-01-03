@@ -17,7 +17,7 @@ public interface HeapAllocator {
    */
   public static final int META_DATA_SIZE = 16;
   
-  public static final long STRING_GC_MASK = 0x0000000000000001L;
+  public static final long STRING_GC_MASK = 0x8000000000000000L;
   
   /**
    * Allocates a struct on to the heap

@@ -22,7 +22,9 @@ public class DiskHeapAllocator implements HeapAllocator{
     this.maxSize = maxSize;
     heap = new RandomAccessFile(targetFile, "rwd");
     heap.setLength(maxSize);
-    currentIndex = 0;
+    
+    currentIndex = Long.BYTES;
+    heap.seek(currentIndex);
   }
 
   @Override
@@ -33,7 +35,9 @@ public class DiskHeapAllocator implements HeapAllocator{
       throw new OutOfMemoryError("Need "+totalSizeNeeded+" bytes!, USED: "+usedSize+" bytes");
     }
         
-    long address = currentIndex;
+    final long address = currentIndex;
+    
+    System.out.println("~~~~~~~ALLOCATING AT :"+address);
     
     /*
      * structure layout for non-strings
@@ -56,18 +60,30 @@ public class DiskHeapAllocator implements HeapAllocator{
       heap.writeLong((memberTypeCodes.length << 1) + 1);
       currentIndex += Long.BYTES;
       
+      
       /*
        * top most value is bottom most member 
        */   
-      for (long i = currentIndex + memberTypeCodes.length; i > 0; i--) {
-        long operand = stack.popOperand();
+      long [] dataArgs = new long[memberTypeCodes.length];
+      for (int i = dataArgs.length - 1; i >= 0; i--) {
+        dataArgs[i] = stack.popOperand();
+        System.out.println("cons arg: "+i+" : "+(dataArgs[i] >>> 1));
+      }
+      
+      
+      for (long l : dataArgs) {
+        System.out.println("_____VERIFY: "+(l >>> 1));
+      }
+      
+      
+      for (int i = 0; i < dataArgs.length; i++) {
         heap.seek(currentIndex);
-        heap.writeLong(operand);
+        heap.writeLong(dataArgs[i]);
+        System.out.print(" putting "+(dataArgs[i] >>> 1));
         currentIndex += Long.BYTES;
       }
       
-      usedSize += totalSizeNeeded;
-      
+      usedSize += totalSizeNeeded;      
       return (address << 1);
     } catch (IOException e) {
       throw new Error("IO Error reading from disk heap. Message: \n"+e.getMessage());
@@ -145,6 +161,9 @@ public class DiskHeapAllocator implements HeapAllocator{
   @Override
   public String getString(long address) {
     long trueIndex = (address >>> 1);
+    if (trueIndex == 0) {
+      throw new Error("Error: Attempt to access a null address");
+    }
     //System.out.println("RETREIVING DISK STRING------- "+trueIndex);
     //System.out.println(getHeapRepresentation());
 
@@ -164,7 +183,7 @@ public class DiskHeapAllocator implements HeapAllocator{
       byte [] stringBytes = new byte[(int) (size + paddingNeeded)];
       heap.seek(trueIndex + (2 * Long.BYTES));
       heap.read(stringBytes);
-
+      
       heap.seek(currentIndex);
       
       return new String(stringBytes, 0, (int) size);
@@ -176,6 +195,9 @@ public class DiskHeapAllocator implements HeapAllocator{
 
   @Override
   public long get(long address, long offset) {
+    if ((address >>> 1) == 0) {
+      throw new Error("Error: Attempt to access a null address");
+    }
     long trueIndex = ((address >>> 1) + (offset * Long.BYTES));
     
     try {
@@ -190,6 +212,10 @@ public class DiskHeapAllocator implements HeapAllocator{
 
   @Override
   public long mutate(long address, long offset, long newValue) {
+    if ((address >>> 1) == 0) {
+      throw new Error("Error: Attempt to access a null address");
+    }
+    
     try {
       long trueIndex = ((address >>> 1) + (offset * Long.BYTES));
       heap.seek(trueIndex);
@@ -206,6 +232,9 @@ public class DiskHeapAllocator implements HeapAllocator{
 
   @Override
   public long getSize(long address) {
+    if ((address >>> 1) == 0) {
+      throw new Error("Error: Attempt to access a null address");
+    }
     try {
       long trueIndex = (address >>> 1) + Long.BYTES ;
       //System.out.println("  ***** READING SIZE: "+trueIndex);

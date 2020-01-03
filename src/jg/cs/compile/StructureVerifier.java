@@ -58,10 +58,9 @@ public class StructureVerifier {
     
     HashMap<FunctionSignature, FunctionLike> topLevelFunctions = new HashMap<>();
 
-    ArrayList<Expr> topLevelStatements = new ArrayList<Expr>();
+    ArrayList<Expr> topLevelStatements = new ArrayList<Expr>();    
     
     for (Expr component : rawExprs) {
-      verifyExpr(component, new ArrayList<>(), true);
       if (component instanceof FunctionLike) {
         FunctionLike exp = (FunctionLike) component;
         
@@ -76,6 +75,8 @@ public class StructureVerifier {
         topLevelStatements.add(component);
       }
     }
+    
+    System.out.println("!!!!!!!!!!!!!!!!!!!bouta "+structDecs);
     
     for (Expr component : rawExprs) {
       verifyExpr(component, new ArrayList<>(), true);
@@ -142,6 +143,7 @@ public class StructureVerifier {
          */
         DataDeclaration declaration = (DataDeclaration) expr;
         for (Entry<Identifier, Typ> entry : declaration.getMembers().entrySet()) {
+          System.out.println("DATA DECS: "+structDecs);
           if (!structDecs.containsKey(entry.getValue().getActualValue().getName()) && 
               !Type.PRIMITIVE.containsKey(entry.getValue().getActualValue().getName())) {
             throw new UnresolvableComponentException(entry.getValue().getActualValue(), 
