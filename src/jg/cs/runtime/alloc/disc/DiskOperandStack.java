@@ -16,8 +16,9 @@ public class DiskOperandStack implements OperandStack{
   
   private long currentFileOffet;
   
-  public DiskOperandStack(File location) throws FileNotFoundException {
+  public DiskOperandStack(File location) throws IOException {
     stack = new RandomAccessFile(location, "rwd");
+    stack.setLength(0);
     currentFileOffet = 0;
   }
 

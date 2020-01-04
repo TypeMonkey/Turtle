@@ -8,110 +8,61 @@ import java.io.RandomAccessFile;
 import jg.cs.runtime.alloc.FunctionStack;
 import jg.cs.runtime.alloc.err.StackException;
 import jg.cs.runtime.alloc.err.StackException.ExceptionCode;
+import jg.cs.runtime.alloc.mem.MemFunctionStack;
 
-public class DiskFunctionStack implements FunctionStack{
-  
-  private final RandomAccessFile stack;
+public class DiskFunctionStack extends MemFunctionStack{
   
   private long index;
-
-  public DiskFunctionStack(File file) throws IOException {
-    stack = new RandomAccessFile(file, "rwd");
-    stack.setLength(80);
-    stack.seek(0);
+  
+  public DiskFunctionStack() {
+    super();
     index = 0;
   }
   
   @Override
-  public void changeFPBy(long insIndex) {
-    System.out.println("  ---> FP THEN: "+index);
+  public void setFP(final long fp) {
+    super.setFP(fp);
+    
+    System.err.println("--doffset THEN: "+index);
+    index += (fp * Long.BYTES);
+    System.err.println("--doffset NOW: "+index);
+  }
+  
+  @Override
+  public void changeFPBy(final long insIndex) {
+    super.changeFPBy(insIndex);
+    
+    System.err.println("--doffset THEN: "+index);
     index += (insIndex * Long.BYTES);
-    System.out.println("  ---> FP NOW: "+index);
+    System.err.println("--doffset NOW: "+index);
   }
   
   @Override
-  public void setFP(long fp) {
-    System.out.println("  ---> FP SET THEN: "+index);
-    index = (fp * Long.BYTES);
-    System.out.println("  ---> FP SET NOW: "+index);
+  public long retrieveAtOffset(final long offset) throws IllegalArgumentException {
+    return super.retrieveAtOffset(offset);
+    
+    System.err.println("--doffset THEN: "+index);
+    index += (fp * Long.BYTES);
+    System.err.println("--doffset NOW: "+index);
   }
   
-  private void growStack() {
-    try {
-      stack.setLength(stack.length() + 80);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-  }
-
   @Override
-  public long retrieveAtOffset(long offset) throws IllegalArgumentException, StackException {
-    try {
-      final long actualOffset = offset * Long.BYTES;
-      System.out.println("----RETREIVING FROM RI: "+(index + offset));
-      stack.seek(index + actualOffset);
-      long val =  stack.readLong();
-      System.out.println("     ---val: "+val+" | dec? "+(val >>> 1));
-      System.out.println(toString(offset));
-      return val;
-    } catch (IOException e) {
-      throw new StackException(ExceptionCode.IO_ERROR);
-    }
+  public void saveAtOffset(final long offset, final long value) throws IllegalArgumentException {
+    super.saveAtOffset(offset, value);
   }
-
+  
   @Override
-  public void saveAtOffset(long offset, long value) throws IllegalArgumentException, StackException {
-    try {
-      System.out.println("^^^^^^^^^^^^^^WRITING TO RI: "+getRealAddress(offset)+" is val "+(value >>> 1));
-      final long actualOffset = offset * Long.BYTES;
-      if (index + actualOffset > stack.length() - 1) {
-        growStack();
-        saveAtOffset(offset, value);
-      }
-      else {
-        stack.seek(index + actualOffset);
-        stack.writeLong(value);
-        
-        System.out.println(toString(offset));     
-      }      
-    } catch (IOException e) {
-      throw new StackException(ExceptionCode.IO_ERROR);
-    }
+  public long getRealAddress(final long offset) {
+    return super.getRealAddress(offset);
   }
-
-  @Override
-  public long getRealAddress(long offset) {
-    return index + (offset * Long.BYTES);
-  }
-
+  
   @Override
   public long getTotalElements() {
-    try {
-      return stack.length() / Long.BYTES;
-    } catch (IOException e) {
-      throw new Error("IO ERROR when getting file size");
-    }
-  }
-
-  @Override
-  public long getCurrentFP() {
-    return index;
+    return super.getTotalElements();
   }
   
-  public String toString(long offset) {
-    try {
-      System.out.println("----SIZE: "+stack.length());
-      String x = "==================DFSTACK==================TOTAL: "+stack.length()+"\n";
-      x += "  index = "+index+" | offset = "+offset+"\n";
-      for (int i = (int) index; i <= index + (offset * Long.BYTES); i += 8) {
-        stack.seek(i);
-        x += i+" : "+(stack.readLong() >>> 1)+" \n";
-      }
-      x += "==================DFSTACK END==================\n";
-      return x;
-    } catch (IOException e) {
-      e.printStackTrace();
-      return "IO ERROR COULD NOT READ STACK "+e.getMessage();
-    }
+  @Override
+  public long getCurrentFP() {
+    return super.getCurrentFP();
   }
 }

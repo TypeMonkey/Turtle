@@ -101,6 +101,7 @@ public class Main {
         
         //WRITE IR TO FILE FOR DEBUG
         File file = new File("debug.irt");
+        
         System.out.println("----WRITING IR TO FILE: ");
         try {
           PrintWriter printWriter = new PrintWriter(file);
@@ -140,7 +141,7 @@ public class Main {
         fstackFile.createNewFile();
         fstackFile.deleteOnExit();
         
-        DiskFunctionStack functionStack = new DiskFunctionStack(fstackFile);
+        DiskFunctionStack functionStack = new DiskFunctionStack();
         DiskHeapAllocator heapAllocator = new DiskHeapAllocator(heapFile, 1000);
         DiskOperandStack operandStack = new DiskOperandStack(operFile);
         
