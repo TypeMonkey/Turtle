@@ -28,7 +28,7 @@ public class MemHeapAllocator implements HeapAllocator{
   
   private void setArray(byte [] target, byte [] toCopy, int startIndex, int endIndex) {
     int i = 0;
-    System.out.println(" in "+startIndex+" <-> "+endIndex);
+    //System.out.println(" in "+startIndex+" <-> "+endIndex);
     for ( ; startIndex <= endIndex; startIndex++) {
       target[startIndex] = toCopy[i];
       i++;
@@ -55,7 +55,7 @@ public class MemHeapAllocator implements HeapAllocator{
      * Element n
      */
     
-    System.out.println("*** ALLOCATING STRUCT: "+address);
+    //System.out.println("*** ALLOCATING STRUCT: "+address);
     
     //place GC data on
     setArray(heap, 
@@ -71,7 +71,7 @@ public class MemHeapAllocator implements HeapAllocator{
         currentIndex + Long.BYTES - 1);
     currentIndex += Long.BYTES;
     
-    System.out.println("---still allocating ("+(address >>> 1)+")\n"+getHeapRepresentation());
+    //System.out.println("---still allocating ("+(address >>> 1)+")\n"+getHeapRepresentation());
     
     /*
      * top most value is bottom most member 
@@ -79,16 +79,18 @@ public class MemHeapAllocator implements HeapAllocator{
     long [] dataArgs = new long[memberTypeCodes.length];
     for (int i = dataArgs.length - 1; i >= 0; i--) {
       dataArgs[i] = stack.popOperand();
-      System.out.println("cons arg: "+i+" : "+(dataArgs[i] >>> 1));
+      //System.out.println("cons arg: "+i+" : "+(dataArgs[i] >>> 1));
     }
     
+    /*
     for (long l : dataArgs) {
       System.out.println("_____VERIFY: "+(l >>> 1));
     }
+    */
     
     for (int i = 0; i < dataArgs.length; i++) {
       byte [] dat = ByteBuffer.allocate(Long.BYTES).putLong(dataArgs[i]).array();
-      System.out.print(" putting "+(dataArgs[i] >>> 1));
+      //System.out.print(" putting "+(dataArgs[i] >>> 1));
       setArray(heap, dat, currentIndex, currentIndex + Long.BYTES - 1);
       currentIndex += Long.BYTES;
     }
@@ -97,8 +99,8 @@ public class MemHeapAllocator implements HeapAllocator{
     
     usedSpace += totalSizeNeeded;
     
-    System.out.println("--ended allocation: "+currentIndex);
-    System.out.println("** ALLOCATE STRUCT RESULT: \n"+getHeapRepresentation());
+    //System.out.println("--ended allocation: "+currentIndex);
+    //System.out.println("** ALLOCATE STRUCT RESULT: \n"+getHeapRepresentation());
     
     return (address << 1);
   }
@@ -116,7 +118,7 @@ public class MemHeapAllocator implements HeapAllocator{
      * SIZE = charcater amount in ASCII
      * bytes....
      */
-    System.out.println("ALLOCATING STTRING |"+string+"|");
+    //System.out.println("ALLOCATING STTRING |"+string+"|");
 
     byte [] encoded = string.getBytes();
     
@@ -134,12 +136,12 @@ public class MemHeapAllocator implements HeapAllocator{
     
     int totalSizeNeeded = encoded.length + paddingNeeded + META_DATA_SIZE;
     if (currentIndex + totalSizeNeeded > heap.length - 1) {
-      System.out.println(getHeapRepresentation());
+      //System.out.println(getHeapRepresentation());
       throw new OutOfMemoryError("Need "+(currentIndex + totalSizeNeeded)+" bytes!, USED: "+usedSpace+" bytes, MAX: "+heap.length);
     }
     
     long address = currentIndex;
-    System.out.println("ADDING AT: "+address);
+    //System.out.println("ADDING AT: "+address);
     //System.out.println(getHeapRepresentation());
     
     //place GC data on
@@ -159,7 +161,7 @@ public class MemHeapAllocator implements HeapAllocator{
     setArray(heap, encoded, currentIndex, currentIndex + encoded.length - 1);
     currentIndex += encoded.length;
     
-    System.out.println(" STRING NEW HEAP INDEX: "+currentIndex);
+    //System.out.println(" STRING NEW HEAP INDEX: "+currentIndex);
     
     //System.out.println("----PRINTING NEW HEAP");
     //System.out.println(getHeapRepresentation());
@@ -197,7 +199,7 @@ public class MemHeapAllocator implements HeapAllocator{
       throw new Error("Error: Attempt to access a null address");
     }
     int trueIndex = (int) ((address >>> 1) + (offset * Long.BYTES));
-    System.out.println(" ---HEAP GETTING AT IREAL INDEX: "+trueIndex);
+    //System.out.println(" ---HEAP GETTING AT IREAL INDEX: "+trueIndex);
     
     byte [] rawValue = Arrays.copyOfRange(heap, trueIndex, trueIndex + Long.BYTES);
     long decoded = ByteBuffer.wrap(rawValue).getLong();
@@ -232,8 +234,8 @@ public class MemHeapAllocator implements HeapAllocator{
      */
     int trueIndex = ((int) (address >>> 1)) + Long.BYTES;
     
-    System.out.println("GETTING SIZE AT: "+trueIndex);
-    System.out.println("   heap current size: "+heap.length);
+    //System.out.println("GETTING SIZE AT: "+trueIndex);
+    //System.out.println("   heap current size: "+heap.length);
     byte [] raw = Arrays.copyOfRange(heap, trueIndex, trueIndex + Long.BYTES);
     
     return ByteBuffer.wrap(raw).getLong();

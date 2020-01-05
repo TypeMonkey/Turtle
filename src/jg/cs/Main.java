@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -59,7 +60,7 @@ public class Main {
       System.exit(-1);
     }
 
-    File targetFile = new File(args[0]);
+    File targetFile = new File(clOptions.getSourceFile());
     if (targetFile.exists() && targetFile.canRead()) {
 
       List<Token> tokens = null;
@@ -168,7 +169,7 @@ public class Main {
    * @param args - the String arguments provided
    * @return CommandLineOption representing entered arguments
    */
-  public static CommandLineOption parseArguments(String [] args) {
+  public static CommandLineOption parseArguments(String [] args) {    
     Options options = new Options();
     
     Option help = new Option("h", "Lists command options for the Turtle interpreter");
@@ -215,6 +216,7 @@ public class Main {
       CommandLine commandLine = parser.parse(options, args);
       if (commandLine.hasOption("h")) {
         usageFormatter.printHelp("turtle [args] source_code.t", options);
+        //System.out.println("---RETURNING NULL HELP");
         return null;
       }
       
@@ -225,21 +227,25 @@ public class Main {
         optionMap.put(CLOption.DISK_OP_STACK, commandLine.hasOption("o") ? 
                                               commandLine.getOptionValue("o") : 
                                               commandLine.getOptionValue("oload"));
+        //System.out.println("---DISK OP STACK");
       }
       if (commandLine.hasOption("s") | commandLine.hasOption("sload")) {
-        optionMap.put(CLOption.DISK_OP_STACK, commandLine.hasOption("s") ? 
+        optionMap.put(CLOption.DISK_F_STACK, commandLine.hasOption("s") ? 
             commandLine.getOptionValue("s") : 
             commandLine.getOptionValue("sload"));
+        //System.out.println("---DISK FUNC STACK "+optionMap);
       }
       if (commandLine.hasOption("e") | commandLine.hasOption("hload")) {
-        optionMap.put(CLOption.DISK_OP_STACK, commandLine.hasOption("e") ? 
+        optionMap.put(CLOption.DISK_HEAP, commandLine.hasOption("e") ? 
             commandLine.getOptionValue("e") : 
             commandLine.getOptionValue("hload"));
+        //System.out.println("---DISK HEAP");
       }
       if (commandLine.hasOption("i") | commandLine.hasOption("irout")) {
-        optionMap.put(CLOption.DISK_OP_STACK, commandLine.hasOption("i") ? 
+        optionMap.put(CLOption.IR_OUTPUT, commandLine.hasOption("i") ? 
             commandLine.getOptionValue("i") : 
             commandLine.getOptionValue("irout"));
+        //System.out.println("---DISK IR OUTPUT");
       }
       
       if (commandLine.hasOption("m") | commandLine.hasOption("max")) {
@@ -260,7 +266,7 @@ public class Main {
       else{
         String sourceFile = commandLine.getArgList().get(0);    
         
-        if (getFileExtension(sourceFile).equals("t")) {
+        if (!getFileExtension(sourceFile).equals("t")) {
           usageFormatter.printHelp("turtle [args] source_code.t", options);
           return null;
         }
