@@ -72,7 +72,7 @@ public class TypeChecker {
     }
     
     
-    System.out.println("---ENTERINMG TOP LEVEL EXPRS: "+fenv);
+    //System.out.println("---ENTERINMG TOP LEVEL EXPRS: "+fenv);
     for (Expr component : program.getExprList()) {
       latest = checkExpr(component, new ArrayList<>(), fenv);
     }   
@@ -244,9 +244,9 @@ public class TypeChecker {
       List<Map<String, IdenTypeValTuple>> others, 
       List<Map<FunctionSignature, FunctionLike>> fenv) {
     
-    System.out.println(" ---> CALL TC: "+call.getFuncName()+" | CALLER: "+call.getArguments());
-    System.out.println("     ORG: "+call+"   "+call.getLeadLnNumber());
-    System.out.println("----FMAPS: "+fenv);
+    //System.out.println(" ---> CALL TC: "+call.getFuncName()+" | CALLER: "+call.getArguments());
+    //System.out.println("     ORG: "+call+"   "+call.getLeadLnNumber());
+    //System.out.println("----FMAPS: "+fenv);
     
     Type [] argTypes = new Type[call.getArgCount()];
     int i = 0;
@@ -272,14 +272,14 @@ public class TypeChecker {
     
     //if function isn't found, then check built ins
     if (BuiltInFunctions.BUILT_IN_MAP.containsKey(signature)) {
-      System.out.println("    ---> CALL TBC: "+signature+" | CALLER: "+call);
+      //System.out.println("    ---> CALL TBC: "+signature+" | CALLER: "+call);
       return BuiltInFunctions.BUILT_IN_MAP.get(signature).getIdentity().getReturnType();
     }
     
     //System.out.println("FINDING: "+signature);
     //System.out.println("  MAPS: "+fenv);
     
-    System.out.println(" --- unfound function: "+signature+"  || "+call.getLeadLnNumber());
+    //System.out.println(" --- unfound function: "+signature+"  || "+call.getLeadLnNumber());
     throw new UnresolvableComponentException(signature, 
         call.getLeadToken(), 
         program.getFileName());
@@ -402,9 +402,9 @@ public class TypeChecker {
     LinkedHashMap<FunctionSignature, FunctionLike> localFuncMap = new LinkedHashMap<>();
     localFuncMap.put(expr.getIdentity().getSignature(), expr);
     
-    System.out.println("  DEF: "+expr.getIdentity());
-    System.out.println("      LOC: "+expr.getLeadLnNumber());
-    System.out.println("      FMAPS: "+localFuncMap);
+    //System.out.println("  DEF: "+expr.getIdentity());
+    //System.out.println("      LOC: "+expr.getLeadLnNumber());
+    //System.out.println("      FMAPS: "+localFuncMap);
     
     Type lastType = Type.VOID; //in case the function is empty
         
@@ -492,13 +492,6 @@ public class TypeChecker {
     ArrayList<Map<FunctionSignature, FunctionLike>> newEnv = new ArrayList<>();
     newEnv.add(newMap);
     newEnv.addAll(others);
-    
-    return newEnv;
-  }
-
-  private List<Map<FunctionSignature, FunctionLike>> fwrap(Map<FunctionSignature, FunctionLike> newMap){
-    ArrayList<Map<FunctionSignature, FunctionLike>> newEnv = new ArrayList<>();
-    newEnv.add(newMap);
     
     return newEnv;
   }

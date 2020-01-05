@@ -76,7 +76,7 @@ public class StructureVerifier {
       }
     }
     
-    System.out.println("!!!!!!!!!!!!!!!!!!!bouta "+structDecs);
+    //System.out.println("!!!!!!!!!!!!!!!!!!!bouta "+structDecs);
     
     for (Expr component : rawExprs) {
       verifyExpr(component, new ArrayList<>(), true);
@@ -143,7 +143,7 @@ public class StructureVerifier {
          */
         DataDeclaration declaration = (DataDeclaration) expr;
         for (Entry<Identifier, Typ> entry : declaration.getMembers().entrySet()) {
-          System.out.println("DATA DECS: "+structDecs);
+          //System.out.println("DATA DECS: "+structDecs);
           if (!structDecs.containsKey(entry.getValue().getActualValue().getName()) && 
               !Type.PRIMITIVE.containsKey(entry.getValue().getActualValue().getName())) {
             throw new UnresolvableComponentException(entry.getValue().getActualValue(), 

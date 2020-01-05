@@ -3,6 +3,7 @@ package jg.cs;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -112,7 +113,8 @@ public class Main {
       
       if (clOptions.getValue(CLOption.IR_OUTPUT) != null) {
         //WRITE IR TO FILE FOR DEBUG
-        PrintWriter writer = new PrintWriter(clOptions.getValue(CLOption.IR_OUTPUT));
+        System.out.println("---WRITING IR OUTPUT: "+clOptions.getValue(CLOption.IR_OUTPUT));
+        PrintWriter writer = new PrintWriter(new FileOutputStream(clOptions.getValue(CLOption.IR_OUTPUT), false));
         Instr [] instrs = result.getInstructions();
         
         for (int i = 0; i < instrs.length; i++) {

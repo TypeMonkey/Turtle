@@ -210,7 +210,7 @@ public class IRCompiler {
           new LabelAndFunc(genLabel(topFunction.getKey().getName()), topFunction.getValue()));
     }
     
-    System.out.println("-----FMAP: \n"+fmap.entrySet().stream().map(x -> x.toString()).collect(Collectors.joining("\n")));
+    //System.out.println("-----FMAP: \n"+fmap.entrySet().stream().map(x -> x.toString()).collect(Collectors.joining("\n")));
     
     //go over struct declarations and put their type codes
     for (Entry<Type, DataDeclaration> dec : program.getStructDecs().entrySet()) {
@@ -238,7 +238,7 @@ public class IRCompiler {
       
       instrs.add(new LabelInstr(bilt.label, specific.getIrCode(), -1, -1));
       instrs.add(new NoArgInstr(NAInstr.RET, -1, -1));
-      System.out.println(" !!!! SET B LABEL: "+bilt.label);
+      //System.out.println(" !!!! SET B LABEL: "+bilt.label);
     }
         
     //Compile top-level functions
@@ -333,7 +333,7 @@ public class IRCompiler {
     else if (expr instanceof MutateExpr) {
       MutateExpr mutateExpr = (MutateExpr) expr;
       
-      System.out.println("******MUTATE INSTRUCTION COMPILED!!!");
+      //System.out.println("******MUTATE INSTRUCTION COMPILED!!!");
       
       ArrayList<Instr> instrs = new ArrayList<Instr>();
       
@@ -351,7 +351,7 @@ public class IRCompiler {
     else if (expr instanceof RetrieveExpr) {
       RetrieveExpr retrieveExpr = (RetrieveExpr) expr;
       
-      System.out.println("******RETRIVE INSTRUCTION COMPILED!!!");
+      //System.out.println("******RETRIVE INSTRUCTION COMPILED!!!");
 
       
       ArrayList<Instr> instrs = new ArrayList<Instr>();
@@ -429,7 +429,7 @@ public class IRCompiler {
     int insertIndex = instrs.size();
     for (Entry<String, IdenTypeValTuple> param : expr.getParameters().entrySet()) {
       localEnv.put(param.getKey(), new TypeAndIndex(stackIndex, param.getValue().getType()));
-      System.out.println("---- FOR FUNC DEF: "+expr.getIdentity()+" , param "+param.getKey()+" at index "+stackIndex);
+      //System.out.println("---- FOR FUNC DEF: "+expr.getIdentity()+" , param "+param.getKey()+" at index "+stackIndex);
       instrs.add(insertIndex, new StoreInstr(stackIndex, -1, -1));
       stackIndex++;
     }
@@ -437,7 +437,7 @@ public class IRCompiler {
     //map to keep track of nested functions
     HashMap<FunctionSignature, LabelAndFunc> nested = new HashMap<>();
     
-    System.out.println("----> DEF LABELS: "+fconcat(nested, fMaps));
+    //System.out.println("----> DEF LABELS: "+fconcat(nested, fMaps));
     
     //then, compile the function's body
     for (Expr bod : expr.getExpressionsExprs()) {
@@ -476,8 +476,8 @@ public class IRCompiler {
       List<Map<String, TypeAndIndex>> indexMaps, 
       List<Map<FunctionSignature, LabelAndFunc>> fMaps,
       long stackIndex) {
-    System.out.println("---FUNC CALL: "+expr+" | "+stackIndex);
-    System.out.println("    LABELS? "+fMaps);
+    //System.out.println("---FUNC CALL: "+expr+" | "+stackIndex);
+    //System.out.println("    LABELS? "+fMaps);
     
     // TODO Auto-generated method stub
     ArrayList<Instr> instrs = new ArrayList<Instr>();
@@ -500,15 +500,15 @@ public class IRCompiler {
     
     LabelAndFunc found = find(targetFunction, fMaps);
     
-    System.out.println("--TARGET:"+targetFunction + " ln: "+expr.getLeadLnNumber());
-    System.out.println("   -> SI "+stackIndex);
-    System.out.println("   -> TARGET LABEL: "+found.label);
+    //System.out.println("--TARGET:"+targetFunction + " ln: "+expr.getLeadLnNumber());
+    //System.out.println("   -> SI "+stackIndex);
+    //System.out.println("   -> TARGET LABEL: "+found.label);
     
     instrs.add(new IncfpInstr(stackIndex, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
     instrs.add(new NoArgInstr(NAInstr.SAVEINS,expr.getLeadLnNumber(), expr.getLeadLnNumber()));
     instrs.add(new JumpInstr(Jump.CALL, found.label, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
     
-    System.out.println("----> CALL: "+instrs);
+    //System.out.println("----> CALL: "+instrs);
     return new InstrAndType(instrs, found.getFunction().getIdentity().getReturnType());
   }
 
@@ -683,6 +683,10 @@ public class IRCompiler {
       List<Map<FunctionSignature, LabelAndFunc>> fMaps,
       long stackIndex) {
     ArrayList<Instr> instrs = new ArrayList<Instr>();
+    
+    //make whileLabel
+    String whileLabel = genLabel("whileLabel");
+    instrs.add(new LabelInstr(whileLabel, -1, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
 
     //compile condition
     InstrAndType conditionComp = compileExpr(expr.getCondition(), indexMaps, fMaps, stackIndex);
@@ -719,6 +723,8 @@ public class IRCompiler {
         instrs.addAll(result.instrs);
       }
     }
+    
+    instrs.add(new JumpInstr(Jump.JMP, whileLabel, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
     
     instrs.add(new LabelInstr(endLabel, -1, expr.getLeadLnNumber(), expr.getLeadLnNumber()));
     
