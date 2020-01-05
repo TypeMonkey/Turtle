@@ -10,23 +10,29 @@ public class Main {
     file.createNewFile();
     file.deleteOnExit();
     
-    RandomAccessFile accessFile = new RandomAccessFile(file, "rwd");
-    accessFile.setLength(0);
+    DiskArray array = new DiskArray(file, Long.BYTES);
+    System.out.println(array.maxIndex());
     
-    System.out.println(accessFile.getFilePointer());
-    accessFile.writeLong(10);
-    System.out.println(accessFile.getFilePointer()); 
-    accessFile.writeLong(6);
-    System.out.println(accessFile.getFilePointer());
+    array.set(0, 10);
+    System.out.println("---outer: size="+array.getByteSize()+" | "+array.maxIndex());
+    array.set(5, 33);
     
-    readRand(accessFile);
+    for (int i = 0; i <= array.maxIndex(); i++) {
+      System.out.println("index="+i+" | "+array.get(i));
+    }
     
-    accessFile.seek(8);
-    accessFile.writeLong(7);
-    System.out.println(accessFile.getFilePointer());
     
-    accessFile.seek(8);
-    System.out.println("read: "+accessFile.readLong());
+    System.out.println("i = 3 | "+array.get(3));
+    array.set(3, -60);
+    System.out.println("i = 3 | "+array.get(3));
+    
+    for (int i = 0; i <= array.maxIndex(); i++) {
+      System.out.println("index="+i+" | "+array.get(i));
+    }
+    
+    array.get(10);
+    
+    //readRand(array.getFile());
   }
   
   public static void readRand(RandomAccessFile accessFile) throws Exception{

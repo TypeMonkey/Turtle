@@ -37,7 +37,7 @@ public class DiskHeapAllocator implements HeapAllocator{
         
     final long address = currentIndex;
     
-    System.out.println("~~~~~~~ALLOCATING AT :"+address);
+    //System.out.println("~~~~~~~ALLOCATING AT :"+address);
     
     /*
      * structure layout for non-strings
@@ -67,19 +67,19 @@ public class DiskHeapAllocator implements HeapAllocator{
       long [] dataArgs = new long[memberTypeCodes.length];
       for (int i = dataArgs.length - 1; i >= 0; i--) {
         dataArgs[i] = stack.popOperand();
-        System.out.println("cons arg: "+i+" : "+(dataArgs[i] >>> 1));
+        //System.out.println("cons arg: "+i+" : "+(dataArgs[i] >>> 1));
       }
       
       
       for (long l : dataArgs) {
-        System.out.println("_____VERIFY: "+(l >>> 1));
+        //System.out.println("_____VERIFY: "+(l >>> 1));
       }
       
       
       for (int i = 0; i < dataArgs.length; i++) {
         heap.seek(currentIndex);
         heap.writeLong(dataArgs[i]);
-        System.out.print(" putting "+(dataArgs[i] >>> 1));
+        //System.out.print(" putting "+(dataArgs[i] >>> 1));
         currentIndex += Long.BYTES;
       }
       

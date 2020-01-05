@@ -39,9 +39,9 @@ public class BuiltInExecutor {
     }
     else if (function == BuiltInFunctions.PRINTLN) {
       System.out.println(heap.getString(values[0]));
-      System.out.println("  ---println pushing "+(values[0] >>> 1));
+      //System.out.println("  ---println pushing "+(values[0] >>> 1));
       opStack.pushOperand(values[0]);
-      System.out.println(" ---and the ostack too: \n"+opStack);
+      //System.out.println(" ---and the ostack too: \n"+opStack);
     }
     else if (function == BuiltInFunctions.INC) {            
       opStack.pushOperand(values[0] + 2);

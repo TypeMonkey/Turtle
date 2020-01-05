@@ -10,59 +10,75 @@ import jg.cs.runtime.alloc.err.StackException;
 import jg.cs.runtime.alloc.err.StackException.ExceptionCode;
 import jg.cs.runtime.alloc.mem.MemFunctionStack;
 
-public class DiskFunctionStack extends MemFunctionStack{
+public class DiskFunctionStack implements FunctionStack{
+  
+  private final DiskArray diskArray;
   
   private long index;
   
-  public DiskFunctionStack() {
-    super();
+  public DiskFunctionStack(File storage) throws IOException {
+    diskArray = new DiskArray(storage, Long.BYTES);
     index = 0;
   }
   
   @Override
   public void setFP(final long fp) {
-    super.setFP(fp);
-    
-    System.err.println("--doffset THEN: "+index);
-    index += (fp * Long.BYTES);
-    System.err.println("--doffset NOW: "+index);
+    //super.setFP(fp);    
+    //System.err.println("--doffset THEN: "+index);
+    index = fp;
+    //System.err.println("--doffset NOW: "+index);
   }
   
   @Override
   public void changeFPBy(final long insIndex) {
-    super.changeFPBy(insIndex);
+    //super.changeFPBy(insIndex);
     
-    System.err.println("--doffset THEN: "+index);
-    index += (insIndex * Long.BYTES);
-    System.err.println("--doffset NOW: "+index);
+    //System.err.println("--doffset THEN: "+index);
+    index += insIndex;
+    //System.err.println("--doffset NOW: "+index);
   }
   
   @Override
   public long retrieveAtOffset(final long offset) throws IllegalArgumentException {
-    return super.retrieveAtOffset(offset);
+    //return super.retrieveAtOffset(offset);
     
-    System.err.println("--doffset THEN: "+index);
-    index += (fp * Long.BYTES);
-    System.err.println("--doffset NOW: "+index);
+    try {
+      return diskArray.get(index + offset);
+    } catch (IOException e) {
+      throw new StackException(ExceptionCode.IO_ERROR);
+    }
+    
+    //System.err.println("--doffset THEN: "+index);
+    //index += (offset * Long.BYTES);
+    //System.err.println("--doffset NOW: "+index);
   }
   
   @Override
   public void saveAtOffset(final long offset, final long value) throws IllegalArgumentException {
-    super.saveAtOffset(offset, value);
+    try {
+      diskArray.set(index + offset, value);
+    } catch (IOException e) {
+      throw new StackException(ExceptionCode.IO_ERROR);
+    }
   }
   
   @Override
   public long getRealAddress(final long offset) {
-    return super.getRealAddress(offset);
+    return offset + index;
   }
   
   @Override
   public long getTotalElements() {
-    return super.getTotalElements();
+    try {
+      return diskArray.maxIndex() + 1;
+    } catch (IOException e) {
+      e.printStackTrace();
+      throw new StackException(ExceptionCode.IO_ERROR);
+    }
   }
   
   @Override
   public long getCurrentFP() {
-    return super.getCurrentFP();
+    return index;
   }
 }

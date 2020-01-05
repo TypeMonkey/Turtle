@@ -141,7 +141,7 @@ public class Main {
         fstackFile.createNewFile();
         fstackFile.deleteOnExit();
         
-        DiskFunctionStack functionStack = new DiskFunctionStack();
+        DiskFunctionStack functionStack = new DiskFunctionStack(fstackFile);
         DiskHeapAllocator heapAllocator = new DiskHeapAllocator(heapFile, 1000);
         DiskOperandStack operandStack = new DiskOperandStack(operFile);
         
