@@ -1,7 +1,8 @@
 <img src="https://raw.githubusercontent.com/TypeMonkey/Turtle/master/imgs/turtle.png" width="450" height="250">
+_"cute turtle" by Tiffany Fawn_
 
 # Turtle 
-_A statically typed , esoteric ML that uses long-term storage for memory use _
+_A statically typed , esoteric ML that uses long-term storage for memory use_
 
 
 ### Features
