@@ -21,7 +21,9 @@ While shopping online, I slowly built an interest in how distributions managed d
 
 I got lost in the sauce. I knew I would most likely never apply this information in my life, yet it was so interesting. My Googlefu started to lead me to articles that intesect distribution strategies with computer architecture. Blog posts about comparisons between road design and computer busses soon popped up.
 
-Then, I came upon this [image](https://www.formulusblack.com/wp-content/uploads/2019/02/Screen-Shot-2019-02-01-at-12.16.39-PM.png)
+Then, I came upon this ![image](https://raw.githubusercontent.com/TypeMonkey/Turtle/master/imgs/speed.png)
+
+_[source](https://www.formulusblack.com/blog/compute-performance-distance-of-data-as-a-measure-of-latency/)_
 
 While others may see just a chart, I saw an ... _opportunity_. In today's modern era, we are making leaps and bounds in data storage efficiency and speed. While only a few decades ago, one would measure computation in days, we now have the luxury of worrying over mere microseconds. 
 
