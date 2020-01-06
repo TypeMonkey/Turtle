@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/TypeMonkey/Turtle/master/imgs/turtle.png" width="450" height="375">
+<img src="https://raw.githubusercontent.com/TypeMonkey/Turtle/master/imgs/turtle.png" width="450" height="400">
 
 # Turtle 
 _A statically typed , esoteric ML that uses long-term storage for memory use _
