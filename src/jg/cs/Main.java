@@ -83,10 +83,6 @@ public class Main {
       List<Expr> components = null;
       try {
         components = parse(tokens);
-
-        //System.out.println("----EXPRS");
-        //components.forEach(x -> System.out.println(x));
-        //System.out.println("----EXPRS");
       } catch (ParserLogException e) {
         System.err.println("turtle: "+e.getMessage());
         System.exit(-1);
@@ -320,8 +316,8 @@ public class Main {
       
       String allValidLines = nonCommentLines.stream().collect(Collectors.joining("\n"));
       
-      System.out.println("----------VALIDS:");
-      System.out.println(allValidLines);
+      //System.out.println("----------VALIDS:");
+      //System.out.println(allValidLines);
       
       Tokenizer tokenizer = new TurtleTokenizer(new StringReader(allValidLines));
       ArrayList<Token> allTokens = new ArrayList<>();
