@@ -17,6 +17,8 @@ public class Type {
   public static final Type STRING = new Type("string");
   public static final Type VOID = new Type("void");
   
+  
+  
   static {
     HashMap<String, Type> temp = new HashMap<>();
     

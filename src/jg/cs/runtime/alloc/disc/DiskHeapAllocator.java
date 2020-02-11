@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import jg.cs.runtime.Executor;
+import jg.cs.runtime.alloc.FunctionStack;
 import jg.cs.runtime.alloc.HeapAllocator;
 import jg.cs.runtime.alloc.OperandStack;
 
@@ -70,11 +71,11 @@ public class DiskHeapAllocator implements HeapAllocator{
         //System.out.println("cons arg: "+i+" : "+(dataArgs[i] >>> 1));
       }
       
-      
+      /*
       for (long l : dataArgs) {
-        //System.out.println("_____VERIFY: "+(l >>> 1));
+        System.out.println("_____VERIFY: "+(l >>> 1));
       }
-      
+      */
       
       for (int i = 0; i < dataArgs.length; i++) {
         heap.seek(currentIndex);
@@ -84,7 +85,7 @@ public class DiskHeapAllocator implements HeapAllocator{
       }
       
       usedSize += totalSizeNeeded;      
-      return (address << 1);
+      return address;
     } catch (IOException e) {
       throw new Error("IO Error reading from disk heap. Message: \n"+e.getMessage());
     }
@@ -119,7 +120,7 @@ public class DiskHeapAllocator implements HeapAllocator{
     
     //System.out.println("---- NEW: "+Arrays.toString(encoded));
     
-    assert (encoded.length % Long.BYTES) == 0;
+    //assert (encoded.length % Long.BYTES) == 0;
     
     int totalSizeNeeded = encoded.length + paddingNeeded + META_DATA_SIZE;
     if (currentIndex + totalSizeNeeded > maxSize - 1) {
@@ -127,7 +128,7 @@ public class DiskHeapAllocator implements HeapAllocator{
     }
     
     try {
-      long address = currentIndex;
+      final long address = currentIndex;
       //System.out.println("ADDING AT: "+address);
       //System.out.println(getHeapRepresentation());
       
@@ -152,7 +153,7 @@ public class DiskHeapAllocator implements HeapAllocator{
       //System.out.println("----PRINTING NEW HEAP");
       //System.out.println(getHeapRepresentation());
       
-      return (address << 1);
+      return address;
     } catch (IOException e) {
       throw new Error("IO Error reading from disk heap. Message: \n"+e.getMessage());
     }
@@ -160,7 +161,7 @@ public class DiskHeapAllocator implements HeapAllocator{
 
   @Override
   public String getString(long address) {
-    long trueIndex = (address >>> 1);
+    final long trueIndex = address;
     if (trueIndex == 0) {
       throw new Error("Error: Attempt to access a null address");
     }
@@ -195,10 +196,10 @@ public class DiskHeapAllocator implements HeapAllocator{
 
   @Override
   public long get(long address, long offset) {
-    if ((address >>> 1) == 0) {
+    if (address == 0) {
       throw new Error("Error: Attempt to access a null address");
     }
-    long trueIndex = ((address >>> 1) + (offset * Long.BYTES));
+    long trueIndex = (address + (offset * Long.BYTES));
     
     try {
       heap.seek(trueIndex);
@@ -212,12 +213,12 @@ public class DiskHeapAllocator implements HeapAllocator{
 
   @Override
   public long mutate(long address, long offset, long newValue) {
-    if ((address >>> 1) == 0) {
+    if (address == 0) {
       throw new Error("Error: Attempt to access a null address");
     }
     
     try {
-      long trueIndex = ((address >>> 1) + (offset * Long.BYTES));
+      long trueIndex = (address + (offset * Long.BYTES));
       heap.seek(trueIndex);
       
       heap.writeLong(newValue);
@@ -232,11 +233,11 @@ public class DiskHeapAllocator implements HeapAllocator{
 
   @Override
   public long getSize(long address) {
-    if ((address >>> 1) == 0) {
+    if (address == 0) {
       throw new Error("Error: Attempt to access a null address");
     }
     try {
-      long trueIndex = (address >>> 1) + Long.BYTES ;
+      long trueIndex = address + Long.BYTES ;
       //System.out.println("  ***** READING SIZE: "+trueIndex);
       heap.seek(trueIndex);     
       long size = heap.readLong();
@@ -287,6 +288,12 @@ public class DiskHeapAllocator implements HeapAllocator{
     } catch (IOException e) {
       throw new Error("ERROR PRINTING DISK HEAP!");
     }
+  }
+
+  @Override
+  public long gc(FunctionStack fStack) {
+    // TODO Auto-generated method stub
+    return 0;
   }
 
 }

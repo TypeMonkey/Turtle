@@ -328,7 +328,7 @@ public class Executor {
       operandStack.pushOperand(result);
     }
     else if (instr.getInstr() == NAInstr.RET) {
-      instructionIndex = (int) fstack.retrieveAtOffset(0) - 1;
+      instructionIndex = (int) (fstack.retrieveAtOffset(0) >>> 1) - 1;
       //System.out.println(" INIT INSTR INDEX CHANGE: "+instructionIndex);
       /* The reason we do -1 is because the interpreter loop will
        * Skip over changes to instructionIndex as it is changed DURING the loop.
@@ -337,7 +337,7 @@ public class Executor {
       
       
       long callResult = operandStack.popOperand();
-      long callerFp = operandStack.popOperand();
+      long callerFp = operandStack.popOperand() >>> 1;
       
       
       fstack.setFP(callerFp);     
@@ -350,11 +350,11 @@ public class Executor {
     }
     else if (instr.getInstr() == NAInstr.PUSHFP) {      
       //System.out.println("  SAVING FP="+fstack.getCurrentFP()+" on OPSTACK");
-      operandStack.pushOperand(fstack.getCurrentFP());
+      operandStack.pushOperand( (fstack.getCurrentFP() << 1) + 1);
     }
     else if (instr.getInstr() == NAInstr.SAVEINS) {
       //System.out.println("---SAVING INSTRUCITON INDEX: cur="+instructionIndex+" , modi="+(instructionIndex + 2));
-      fstack.saveAtOffset(0, instructionIndex+2);
+      fstack.saveAtOffset(0, ((instructionIndex+2) << 1) + 1);
     }
   }
   

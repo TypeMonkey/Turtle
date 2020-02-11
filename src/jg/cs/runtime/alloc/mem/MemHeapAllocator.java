@@ -102,7 +102,7 @@ public class MemHeapAllocator implements HeapAllocator{
     //System.out.println("--ended allocation: "+currentIndex);
     //System.out.println("** ALLOCATE STRUCT RESULT: \n"+getHeapRepresentation());
     
-    return (address << 1);
+    return address;
   }
 
   @Override
@@ -140,7 +140,7 @@ public class MemHeapAllocator implements HeapAllocator{
       throw new OutOfMemoryError("Need "+(currentIndex + totalSizeNeeded)+" bytes!, USED: "+usedSpace+" bytes, MAX: "+heap.length);
     }
     
-    long address = currentIndex;
+    final long address = currentIndex;
     //System.out.println("ADDING AT: "+address);
     //System.out.println(getHeapRepresentation());
     
@@ -166,16 +166,16 @@ public class MemHeapAllocator implements HeapAllocator{
     //System.out.println("----PRINTING NEW HEAP");
     //System.out.println(getHeapRepresentation());
     
-    return (address << 1);
+    return address;
   }
 
   @Override
   public String getString(long address) {
-    if ( (address >>> 1) == 0) {
+    if ( address == 0) {
       throw new Error("Error: Attempt to access a null address");
     }
     
-    int trueIndex = (int) (address >>> 1);
+    int trueIndex = (int) address;
     //System.out.println("RETREIVING STRING------- "+trueIndex);
     //System.out.println(getHeapRepresentation());
     
@@ -186,7 +186,7 @@ public class MemHeapAllocator implements HeapAllocator{
     int stringStart = trueIndex + (2 * Long.BYTES);
     
     
-    //System.out.println(" s: "+stringStart+" , e:"+(stringStart + size));
+   // System.out.println(" s: "+stringStart+" , e:"+(stringStart + size));
     byte [] stringBytes = Arrays.copyOfRange(heap, stringStart, (int) (stringStart + size));
     //System.out.println("   --- GOT "+stringBytes.length+" bytes");
       
@@ -195,10 +195,10 @@ public class MemHeapAllocator implements HeapAllocator{
   
   @Override
   public long get(long address, long offset) {
-    if ( (address >>> 1) == 0) {
+    if ( address == 0) {
       throw new Error("Error: Attempt to access a null address");
     }
-    int trueIndex = (int) ((address >>> 1) + (offset * Long.BYTES));
+    int trueIndex = (int) (address + (offset * Long.BYTES));
     //System.out.println(" ---HEAP GETTING AT IREAL INDEX: "+trueIndex);
     
     byte [] rawValue = Arrays.copyOfRange(heap, trueIndex, trueIndex + Long.BYTES);
@@ -209,7 +209,7 @@ public class MemHeapAllocator implements HeapAllocator{
 
   @Override
   public long mutate(long address, long offset, long newValue) {
-    if ( (address >>> 1) == 0) {
+    if ( address  == 0) {
       throw new Error("Error: Attempt to access a null address");
     }
     
@@ -225,14 +225,14 @@ public class MemHeapAllocator implements HeapAllocator{
 
   @Override
   public long getSize(long address) {
-    if ( (address >>> 1) == 0) {
+    if ( address == 0) {
       throw new Error("Error: Attempt to access a null address");
     }
     
     /*
      * Assume struct sizes are encoded
      */
-    int trueIndex = ((int) (address >>> 1)) + Long.BYTES;
+    int trueIndex = ((int) address) + Long.BYTES;
     
     //System.out.println("GETTING SIZE AT: "+trueIndex);
     //System.out.println("   heap current size: "+heap.length);
@@ -271,6 +271,12 @@ public class MemHeapAllocator implements HeapAllocator{
     
     x += "=======HEAP=======TOTAL:"+heap.length;
     return x;
+  }
+
+  @Override
+  public long gc(FunctionStack fStack) {
+    // TODO Auto-generated method stub
+    return 0;
   }
 
 }

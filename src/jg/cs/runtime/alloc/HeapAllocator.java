@@ -72,6 +72,13 @@ public interface HeapAllocator {
   public long getSize(long address);
   
   /**
+   * Cleans the heap of unreachable objects
+   * 
+   * @param fstack - the FunctionStack to use to get the root set from
+   */
+  public long gc(FunctionStack fStack);
+  
+  /**
    * Gets the total used size - in bytes - of the heap
    * @return the total used size - in bytes - of the heap
    */
