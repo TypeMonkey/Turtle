@@ -88,7 +88,11 @@ public class Executor {
     instructionIndex = program.getMainLabel();  
   }
   
-  public void execute() {
+  /**
+   * Executes the compiled Turtle program
+   * @return the elapsed nanoseconds to execute the contained Turtle program
+   */
+  public long execute() {
     System.out.println("==========================EXECUTING=========================="); 
     
     /*
@@ -103,6 +107,8 @@ public class Executor {
      * 
      * Booleans: True = 3, False = 1
      */
+    
+    long begin = System.nanoTime();
     for( ; instructionIndex < program.getInstructions().length ; instructionIndex++) {
       if (program.getInstructions()[instructionIndex] != null) {
         execInstr(program.getInstructions()[instructionIndex]);
@@ -111,6 +117,8 @@ public class Executor {
         //System.out.println(operandStack);
       }
     }
+    long end = System.nanoTime();
+    return end - begin;
   }
   
   private void execInstr(Instr instr) {

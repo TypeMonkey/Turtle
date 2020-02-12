@@ -23,17 +23,20 @@ public class CommandLineOption {
   private final long maxHeapSize;
   private final Map<CLOption, String> options;
   private final String sourceFile;
+  private final boolean printMeasure;
   
   /**
    * Constructs a CommandLineOption
    * @param maxHeapSize - the max heap size, in bytes
    * @param options - the Options and their arguments
    * @param sourceFile - the .t file to execute
+   * @param printMeasure - whether to print the elapsed execution time after
    */
-  public CommandLineOption(long maxHeapSize, Map<CLOption, String> options, String sourceFile) {
+  public CommandLineOption(long maxHeapSize, Map<CLOption, String> options, String sourceFile, boolean printMeasure) {
     this.maxHeapSize = maxHeapSize;
     this.options = options;
     this.sourceFile = sourceFile;
+    this.printMeasure = printMeasure;
   }
   
   /**
@@ -61,6 +64,14 @@ public class CommandLineOption {
     return sourceFile;
   }
   
+  /**
+   * Retrieves the option of whether to print the elapsed execution time.
+   * @return the option of whether to print the elapsed execution time.
+   */
+  public boolean isPrintMeasure() {
+    return printMeasure;
+  }
+
   /**
    * A map containing the mapping of Option to their arguments
    * @return map containing the mapping of Option to their arguments

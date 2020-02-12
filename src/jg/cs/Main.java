@@ -148,7 +148,8 @@ public class Main {
 
       //System.out.println("-------EXECUTING!!!!-------  MAX HEAP: "+heapAllocator.getMaxSpace());
       try {
-        executor.execute();
+        long elasped = executor.execute();
+        System.out.println(">>>>>>> ELASPED "+elasped+" ns.....");
       } catch (Throwable e) {
         e.printStackTrace();
         System.err.println(functionStack);
@@ -200,12 +201,18 @@ public class Main {
     irOutput.setArgs(1);
     irOutput.setRequired(false);
     
+    Option elasped = new Option("l", "Prints out the execution time (in nanoseconds) of a Turtle program.");
+    elasped.setLongOpt("msr");
+    elasped.setArgs(0);
+    elasped.setRequired(false);
+    
     options.addOption(help);
     options.addOption(fstack);
     options.addOption(ostack);
     options.addOption(heapOnDisk);
     options.addOption(heapSize);
     options.addOption(irOutput);
+    options.addOption(elasped);
     
     HelpFormatter usageFormatter = new HelpFormatter();
     CommandLineParser parser = new DefaultParser();
@@ -220,33 +227,37 @@ public class Main {
       
       HashMap<CLOption, String> optionMap = new HashMap<>();
       long maxHeap = 1600;
+      boolean printElasped = false;
       
-      if (commandLine.hasOption("o") | commandLine.hasOption("oload")) {
+      if (commandLine.hasOption("o") || commandLine.hasOption("oload")) {
         optionMap.put(CLOption.DISK_OP_STACK, commandLine.hasOption("o") ? 
                                               commandLine.getOptionValue("o") : 
                                               commandLine.getOptionValue("oload"));
         //System.out.println("---DISK OP STACK");
       }
-      if (commandLine.hasOption("s") | commandLine.hasOption("sload")) {
+      if (commandLine.hasOption("l") || commandLine.hasOption("msr")) {
+        printElasped = true;
+      }
+      if (commandLine.hasOption("s") || commandLine.hasOption("sload")) {
         optionMap.put(CLOption.DISK_F_STACK, commandLine.hasOption("s") ? 
             commandLine.getOptionValue("s") : 
             commandLine.getOptionValue("sload"));
         //System.out.println("---DISK FUNC STACK "+optionMap);
       }
-      if (commandLine.hasOption("e") | commandLine.hasOption("hload")) {
+      if (commandLine.hasOption("e") || commandLine.hasOption("hload")) {
         optionMap.put(CLOption.DISK_HEAP, commandLine.hasOption("e") ? 
             commandLine.getOptionValue("e") : 
             commandLine.getOptionValue("hload"));
         //System.out.println("---DISK HEAP");
       }
-      if (commandLine.hasOption("i") | commandLine.hasOption("irout")) {
+      if (commandLine.hasOption("i") || commandLine.hasOption("irout")) {
         optionMap.put(CLOption.IR_OUTPUT, commandLine.hasOption("i") ? 
             commandLine.getOptionValue("i") : 
             commandLine.getOptionValue("irout"));
         //System.out.println("---DISK IR OUTPUT");
       }
       
-      if (commandLine.hasOption("m") | commandLine.hasOption("max")) {
+      if (commandLine.hasOption("m") || commandLine.hasOption("max")) {
         String rawMax = commandLine.hasOption("m") ? commandLine.getOptionValue("m") : commandLine.getOptionValue("max");
         
         try {
@@ -269,7 +280,7 @@ public class Main {
           return null;
         }
         
-        return new CommandLineOption(maxHeap, optionMap, sourceFile);
+        return new CommandLineOption(maxHeap, optionMap, sourceFile, printElasped);
       }
     } catch (org.apache.commons.cli.ParseException e) {
       usageFormatter.printHelp("turtle [args] source_code.t", options);
