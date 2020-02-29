@@ -50,6 +50,8 @@ import net.percederberg.grammatica.parser.Tokenizer;
 
 public class Main {
 
+  private static final long DEFAULT_HEAP_SIZE = 1600;
+  
   /**
    * Main driver method for the sNEK interpreter
    * @param args - the string arguments to the interpreter
@@ -130,20 +132,46 @@ public class Main {
       //MemFunctionStack functionStack = new MemFunctionStack();
 
 
-      OperandStack operandStack = clOptions.getValue(CLOption.DISK_OP_STACK) != null ?
-                                   new DiskOperandStack(new File(clOptions.getValue(CLOption.DISK_OP_STACK))) :
-                                   new MemOperandStack();
+      OperandStack operandStack = null;
+      if (clOptions.getValue(CLOption.RAM_OP_STACK) != null) {
+        operandStack = new MemOperandStack();
+      }
+      else {
+        File operandFile = new File("opstack.data");
+        operandStack = new DiskOperandStack(operandFile);
+        if (clOptions.getValue(CLOption.NO_OP_STACK) != null) {
+          operandFile.deleteOnExit();
+        }
+      }
                                    
-      HeapAllocator heapAllocator = clOptions.getValue(CLOption.DISK_HEAP) != null ?
-                                       new DiskHeapAllocator(new File(clOptions.getValue(CLOption.DISK_HEAP)), clOptions.getMaxHeapSize()) :
-                                       new MemHeapAllocator((int) clOptions.getMaxHeapSize());
+      HeapAllocator heapAllocator = null;
+      if (clOptions.getValue(CLOption.RAM_HEAP) != null) {
+        heapAllocator = new MemHeapAllocator((int) clOptions.getMaxHeapSize());
+      }
+      else {
+        File heapFile = new File("heap.data");
+        heapAllocator = new DiskHeapAllocator(heapFile, clOptions.getMaxHeapSize());
+        if (clOptions.getValue(CLOption.NO_HEAP) != null) {
+          heapFile.deleteOnExit();
+        }
+      }
                                        
-      FunctionStack functionStack = clOptions.getValue(CLOption.DISK_F_STACK) != null ?
-                                       new DiskFunctionStack(new File(clOptions.getValue(CLOption.DISK_F_STACK))) :
-                                       new MemFunctionStack();
+      FunctionStack functionStack = null;
+      if (clOptions.getValue(CLOption.RAM_STACK) != null) {
+        functionStack = new MemFunctionStack();
+      }
+      else {
+        File ffile = new File("fstack.data");
+        functionStack = new DiskFunctionStack(ffile);
+        if (clOptions.getValue(CLOption.NO_F_STACK) != null) {
+          ffile.deleteOnExit();
+        }
+      }
 
-      Executor executor = new Executor(functionStack, 
-          operandStack, heapAllocator, result);
+      //call GC 
+      System.gc();
+      
+      Executor executor = new Executor(functionStack, operandStack, heapAllocator, result);
       executor.init();
 
       //System.out.println("-------EXECUTING!!!!-------  MAX HEAP: "+heapAllocator.getMaxSpace());
@@ -176,21 +204,6 @@ public class Main {
     help.setArgs(0);
     help.setRequired(false);
     
-    Option ostack = new Option("o", "Will load the operand stack on to disk, using the provided file to write data to.");
-    ostack.setLongOpt("oload");
-    ostack.setArgs(1);
-    ostack.setRequired(false);
-    
-    Option fstack = new Option("s", "Will load the function stack on to disk, using the provided file to write data to.");
-    fstack.setLongOpt("sload");
-    fstack.setArgs(1);
-    fstack.setRequired(false);
-    
-    Option heapOnDisk = new Option("e", "Will load heap on to disk, using the provided file to write data to.");
-    heapOnDisk.setLongOpt("hload");
-    heapOnDisk.setArgs(1);
-    heapOnDisk.setRequired(false);
-    
     Option heapSize = new Option("m", "Sets the max size of the heap, in bytes");
     heapSize.setLongOpt("max");
     heapSize.setArgs(1);
@@ -206,10 +219,43 @@ public class Main {
     elasped.setArgs(0);
     elasped.setRequired(false);
     
+    Option preserveOperands = new Option("nr", "Will delete operand stack data at the termination of the program.");
+    preserveOperands.setLongOpt("nopstack");
+    preserveOperands.setArgs(0);
+    preserveOperands.setRequired(false);
+    
+    Option preserveStack = new Option("ns", "Will delete function stack data at the termination of the program.");
+    preserveStack.setLongOpt("nofstack");
+    preserveStack.setArgs(0);
+    preserveStack.setRequired(false);
+    
+    Option preserveHeap = new Option("nh", "Will delete heap data at the termination of the program.");
+    preserveHeap.setLongOpt("noheap");
+    preserveHeap.setArgs(0);
+    preserveHeap.setRequired(false);
+    
+    Option ramHeap = new Option("e", "Will load heap onto Random Access Memory.");
+    ramHeap.setLongOpt("hload");
+    ramHeap.setArgs(0);
+    ramHeap.setRequired(false);
+    
+    Option ramFStack = new Option("s", "Will load the function stack onto Random Access Memory.");
+    ramFStack.setLongOpt("sload");
+    ramFStack.setArgs(0);
+    ramFStack.setRequired(false);
+    
+    Option ramOStack = new Option("o", "Will load the operand stack onto Random Access Memory.");
+    ramOStack.setLongOpt("oload");
+    ramOStack.setArgs(0);
+    ramOStack.setRequired(false);
+    
     options.addOption(help);
-    options.addOption(fstack);
-    options.addOption(ostack);
-    options.addOption(heapOnDisk);
+    options.addOption(preserveStack);
+    options.addOption(preserveHeap);
+    options.addOption(preserveOperands);
+    options.addOption(ramHeap);
+    options.addOption(ramFStack);
+    options.addOption(ramOStack);
     options.addOption(heapSize);
     options.addOption(irOutput);
     options.addOption(elasped);
@@ -226,30 +272,39 @@ public class Main {
       }
       
       HashMap<CLOption, String> optionMap = new HashMap<>();
-      long maxHeap = 1600;
+      long maxHeap = DEFAULT_HEAP_SIZE;
       boolean printElasped = false;
       
-      if (commandLine.hasOption("o") || commandLine.hasOption("oload")) {
-        optionMap.put(CLOption.DISK_OP_STACK, commandLine.hasOption("o") ? 
-                                              commandLine.getOptionValue("o") : 
-                                              commandLine.getOptionValue("oload"));
-        //System.out.println("---DISK OP STACK");
-      }
       if (commandLine.hasOption("l") || commandLine.hasOption("msr")) {
         printElasped = true;
       }
-      if (commandLine.hasOption("s") || commandLine.hasOption("sload")) {
-        optionMap.put(CLOption.DISK_F_STACK, commandLine.hasOption("s") ? 
-            commandLine.getOptionValue("s") : 
-            commandLine.getOptionValue("sload"));
+      
+      if (commandLine.hasOption(preserveOperands.getOpt()) || commandLine.hasOption(preserveOperands.getLongOpt())) {
+        optionMap.put(CLOption.NO_OP_STACK, "");
         //System.out.println("---DISK FUNC STACK "+optionMap);
       }
-      if (commandLine.hasOption("e") || commandLine.hasOption("hload")) {
-        optionMap.put(CLOption.DISK_HEAP, commandLine.hasOption("e") ? 
-            commandLine.getOptionValue("e") : 
-            commandLine.getOptionValue("hload"));
+      if (commandLine.hasOption(preserveStack.getOpt()) || commandLine.hasOption(preserveStack.getLongOpt())) {
+        optionMap.put(CLOption.NO_F_STACK, "");
         //System.out.println("---DISK HEAP");
       }
+      if (commandLine.hasOption(preserveOperands.getOpt()) || commandLine.hasOption(preserveOperands.getLongOpt())) {
+        optionMap.put(CLOption.NO_OP_STACK, "");
+        //System.out.println("---DISK OP STACK");
+      }
+      
+      if (commandLine.hasOption(ramOStack.getOpt()) || commandLine.hasOption(ramOStack.getLongOpt())) {
+        optionMap.put(CLOption.RAM_OP_STACK, "");
+        //System.out.println("---DISK FUNC STACK "+optionMap);
+      }
+      if (commandLine.hasOption(ramFStack.getOpt()) || commandLine.hasOption(ramFStack.getLongOpt())) {
+        optionMap.put(CLOption.RAM_STACK, "");
+        //System.out.println("---DISK HEAP");
+      }
+      if (commandLine.hasOption(ramHeap.getOpt()) || commandLine.hasOption(ramHeap.getLongOpt())) {
+        optionMap.put(CLOption.RAM_HEAP, "");
+        //System.out.println("---DISK OP STACK");
+      }
+      
       if (commandLine.hasOption("i") || commandLine.hasOption("irout")) {
         optionMap.put(CLOption.IR_OUTPUT, commandLine.hasOption("i") ? 
             commandLine.getOptionValue("i") : 
@@ -258,7 +313,7 @@ public class Main {
       }
       
       if (commandLine.hasOption("m") || commandLine.hasOption("max")) {
-        String rawMax = commandLine.hasOption("m") ? commandLine.getOptionValue("m") : commandLine.getOptionValue("max");
+        String rawMax = commandLine.hasOption("m") || commandLine.hasOption("max")? commandLine.getOptionValue("m") : commandLine.getOptionValue("max");
         
         try {
           maxHeap = Long.parseLong(rawMax);

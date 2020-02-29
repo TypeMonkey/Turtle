@@ -14,9 +14,12 @@ public class CommandLineOption {
    * @author Jose
    */
   public enum CLOption{
-    DISK_HEAP,
-    DISK_OP_STACK,
-    DISK_F_STACK,
+    RAM_HEAP,
+    RAM_STACK,
+    RAM_OP_STACK,
+    NO_HEAP,
+    NO_OP_STACK,
+    NO_F_STACK,
     IR_OUTPUT;
   }
   
