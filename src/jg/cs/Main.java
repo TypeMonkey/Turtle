@@ -127,11 +127,6 @@ public class Main {
         writer.close();
       }
       
-      //MemOperandStack operandStack = new MemOperandStack();       
-      //MemHeapAllocator heapAllocator = new MemHeapAllocator(1000);
-      //MemFunctionStack functionStack = new MemFunctionStack();
-
-
       OperandStack operandStack = null;
       if (clOptions.getValue(CLOption.RAM_OP_STACK) != null) {
         operandStack = new MemOperandStack();
@@ -174,10 +169,11 @@ public class Main {
       Executor executor = new Executor(functionStack, operandStack, heapAllocator, result);
       executor.init();
 
-      //System.out.println("-------EXECUTING!!!!-------  MAX HEAP: "+heapAllocator.getMaxSpace());
       try {
         long elasped = executor.execute();
-        System.out.println(">>>>>>> ELASPED "+elasped+" ns.....");
+        if (clOptions.isPrintMeasure()) {
+          System.out.println(">>>>>>> ELASPED "+elasped+" ns.....");
+        }
       } catch (Throwable e) {
         e.printStackTrace();
         System.err.println(functionStack);
@@ -275,7 +271,7 @@ public class Main {
       long maxHeap = DEFAULT_HEAP_SIZE;
       boolean printElasped = false;
       
-      if (commandLine.hasOption("l") || commandLine.hasOption("msr")) {
+      if (commandLine.hasOption(elasped.getOpt()) || commandLine.hasOption(elasped.getLongOpt())) {
         printElasped = true;
       }
       
@@ -313,7 +309,10 @@ public class Main {
       }
       
       if (commandLine.hasOption("m") || commandLine.hasOption("max")) {
-        String rawMax = commandLine.hasOption("m") || commandLine.hasOption("max")? commandLine.getOptionValue("m") : commandLine.getOptionValue("max");
+        String rawMax = commandLine.hasOption("m") ? 
+                          commandLine.getOptionValue("m") : 
+                          ( commandLine.hasOption("max") ?
+                           commandLine.getOptionValue("max") : null );
         
         try {
           maxHeap = Long.parseLong(rawMax);
