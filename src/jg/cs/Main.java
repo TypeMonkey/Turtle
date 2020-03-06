@@ -173,6 +173,8 @@ public class Main {
         long elasped = executor.execute();
         if (clOptions.isPrintMeasure()) {
           System.out.println(">>>>>>> ELASPED "+elasped+" ns.....");
+          System.out.println(">>>>>>>         "+(elasped/1000000)+" ms.....");
+          System.out.println(">>>>>>>         "+(elasped/1000000000)+" secs.....");
         }
       } catch (Throwable e) {
         e.printStackTrace();
