@@ -37,7 +37,7 @@ Sometimes, it's just nice to sit down, crack open a cold bottle of Sprite Cranbe
 ### Requirements
 Turtle is written in Java 1.8 and depends on a modified version of Grammatica 1.6 for its grammar and parsing. Apache Commons CLI 1.4 is also used for command line argument parsing. 
 
-Every binary will be released with Grammatica 1.6 and Apache Common CLI 1.4 included, so your machine needs to only have Java 8 for sNEK to run.
+Every binary will be released with Grammatica 1.6 and Apache Common CLI 1.4 included, so your machine needs to only have Java 8 for the Turtle Interpeter to run.
 
 ### Writing in Turtle
 The following link: [wiki](https://github.com/TypeMonkey/sNEK/wiki/Syntax-of-sNEK) goes over the basic 8 syntax of Turtle. 
